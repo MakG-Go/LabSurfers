@@ -101,7 +101,7 @@ class FiniteStateMachine {
 			}
 			prevState.Exit();
 		} else {
-			console.error(`State '${name}' does not exist.`);
+			// console.error(`State '${name}' does not exist.`);
 		}
 
 		const state = new this.states[name](this)
@@ -585,6 +585,7 @@ export class BasicCharacterController {
 		this.currPosition = "center"
 		this.interseck = false
 		this.detectedColide = false
+		this.loadPercetn = null
 	}
 
 	Init(params) {
@@ -606,7 +607,7 @@ export class BasicCharacterController {
 		this.params = params
 		this._manager = new THREE.LoadingManager();
 
-		new GLTFLoader(this._manager).load(this.params.model, (gltf) => {
+		new GLTFLoader(this.params.preloader).load(this.params.model, (gltf) => {
 
 			this.model = gltf.scene;
 			this.model.updateMatrixWorld(true)
@@ -642,10 +643,20 @@ export class BasicCharacterController {
 			// console.log(this.plaerBox, 'Box3')
 
 		});
-		this._manager.onLoad = () => {
-			this.stateMachine.SetState('slow-run');
-			console.log(this.model)
-		}
+		// this._manager.onLoad = () => {
+		// 	this.stateMachine.SetState('slow-run');
+		// };
+		// this._manager.onProgress = (url, itemsLoaded, itemsTotal) => {
+		// 	let loadProc = itemsLoaded / itemsTotal;
+		// 	// itemsLoaded / itemsTotal !== 1 ? (this.canvas.style.opacity = 0) : "";
+		// 	this.loadPercetn = Math.round(loadProc * 100);
+		// 	this.GetLoaderStatus()
+
+		// };
+	}
+
+	GetLoaderStatus() {
+		return this.loadPercetn
 	}
 
 	SetupAnimations() {

@@ -231,7 +231,6 @@ export class WorldManager {
 				let newPositionZ = this._objects[index].position.z + this.seporateDistanse + this.getRandom(-1, 2)
 				item.position.z = newPositionZ
 
-				console.log(item.openIndex, 'item.openIndex')
 
 				// console.log(item.position.z)
 				// item.Remove()

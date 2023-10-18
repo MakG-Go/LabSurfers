@@ -70,7 +70,6 @@ export default {
     methods: {
         getStart() {
             this.letsStart = true;
-            console.log("start");
         },
 
         init() {
@@ -96,8 +95,6 @@ export default {
             this.scene = new THREE.Scene();
             this.scene.background = new THREE.Color(0x000000);
             this.scene.fog = new THREE.FogExp2(0x000000, 0.04);
-
-            console.log(this.scene.fog);
 
             this.camera = new THREE.PerspectiveCamera(
                 45,
@@ -206,6 +203,23 @@ export default {
             // this.scene.add(this.pointLightHelper);
         },
 
+        getLoadStatus() {
+            return new THREE.LoadingManager(
+                () => {
+                    gsap.to(this.$refs.preloader, {
+                        opacity: 0,
+                        onComplete: () => {
+                            this.$refs.preloader.classList.remove("active");
+                        },
+                    });
+                },
+                (itemUrl, itemsLoaded, itemsTotal) => {
+                    let loadProc = itemsLoaded / itemsTotal;
+                    this.loadPercetn = Math.floor(loadProc * 100);
+                }
+            );
+        },
+
         getModel({ url, position }) {
             const newModel = new BasicCharacterController({
                 model: url,
@@ -213,6 +227,7 @@ export default {
                 meshStore: this.meshes,
                 mixers: this.mixers,
                 pos: new THREE.Vector3(position.x, position.y, position.z),
+                preloader: this.getLoadStatus(),
             });
 
             this.meshes.push(newModel);
@@ -400,6 +415,10 @@ export default {
 
 <template>
     <div>
+        <div class="preloader active" ref="preloader">
+            <div class="cssload-spin-box"></div>
+        </div>
+
         <div ref="webGl" class="webGl" tabindex="0"></div>
         <div class="score_container">
             <p class="score_number">Score: {{ score }}</p>
@@ -423,7 +442,7 @@ export default {
     </div>
 </template>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .webGl {
     position: fixed;
     top: 0;
@@ -482,6 +501,19 @@ export default {
     &_number {
         color: white;
         font-size: 2rem;
+    }
+}
+.preloader {
+    width: 100lvw;
+    height: 100lvh;
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: black;
+    &.active {
+        z-index: 99;
     }
 }
 </style>
