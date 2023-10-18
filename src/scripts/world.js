@@ -183,7 +183,6 @@ export class WorldManager {
 			}
 			this.onStart = false
 
-			console.log(this._objects)
 		}
 
 

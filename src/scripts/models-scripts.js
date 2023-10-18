@@ -114,7 +114,7 @@ class FiniteStateMachine {
 		if (this.currentState) {
 			this.currentState.Update(timeElapsed, input);
 		} else {
-			console.error('No state set.');
+			// console.error('No state set.');
 		}
 	}
 }
@@ -585,7 +585,6 @@ export class BasicCharacterController {
 		this.currPosition = "center"
 		this.interseck = false
 		this.detectedColide = false
-		this.loadPercetn = null
 	}
 
 	Init(params) {
@@ -643,20 +642,9 @@ export class BasicCharacterController {
 			// console.log(this.plaerBox, 'Box3')
 
 		});
-		// this._manager.onLoad = () => {
+		// this.params.preloader.onLoad = () => {
 		// 	this.stateMachine.SetState('slow-run');
 		// };
-		// this._manager.onProgress = (url, itemsLoaded, itemsTotal) => {
-		// 	let loadProc = itemsLoaded / itemsTotal;
-		// 	// itemsLoaded / itemsTotal !== 1 ? (this.canvas.style.opacity = 0) : "";
-		// 	this.loadPercetn = Math.round(loadProc * 100);
-		// 	this.GetLoaderStatus()
-
-		// };
-	}
-
-	GetLoaderStatus() {
-		return this.loadPercetn
 	}
 
 	SetupAnimations() {

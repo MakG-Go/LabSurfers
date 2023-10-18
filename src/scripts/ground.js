@@ -1,5 +1,6 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { LoadingManager } from "three";
+import * as THREE from 'three'
 
 export class Ground {
 	constructor(params) {
@@ -18,6 +19,13 @@ export class Ground {
 				if (child.isMesh) {
 					child.receiveShadow = true
 					child.frustumCulled = false;
+					child.material.needsUpdate = true
+
+					if (child.material.isMeshStandardMaterial) {
+
+						child.material.envMap = null
+					}
+
 				}
 			})
 

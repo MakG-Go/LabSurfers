@@ -100,7 +100,7 @@ export default {
                 45,
                 this.sizes.width / this.sizes.height,
                 0.01,
-                100
+                50
             );
 
             this.camera.position.x = 0;
@@ -185,13 +185,13 @@ export default {
         getLight() {
             /** Light */
 
-            this.ambientLight = new THREE.AmbientLight(0x404040, 10);
+            this.ambientLight = new THREE.AmbientLight(0x404040, 15);
             this.scene.add(this.ambientLight);
 
-            this.pointLight = new THREE.PointLight(0x404040, 100, 100);
+            this.pointLight = new THREE.PointLight(0x404040, 16, 100);
             this.pointLight.position.x = 0;
-            this.pointLight.position.y = 2.5;
-            this.pointLight.position.z = 15;
+            this.pointLight.position.y = 3.5;
+            this.pointLight.position.z = 20;
             this.sphereSize = 1;
             this.pointLight.castShadow = true;
             // this.pointLightHelper = new THREE.PointLightHelper(
@@ -210,6 +210,7 @@ export default {
                         opacity: 0,
                         onComplete: () => {
                             this.$refs.preloader.classList.remove("active");
+                            this.player.GetRunAnimation();
                         },
                     });
                 },
@@ -257,6 +258,12 @@ export default {
         },
 
         restart() {
+            this.$refs.preloader.classList.add("active");
+            gsap.to(this.$refs.preloader, {
+                opacity: 1,
+                duration: 0.2,
+            });
+
             window.removeEventListener("resize", this.resize);
 
             this.scene.traverse((child) => {
@@ -293,6 +300,7 @@ export default {
 
             this.gameover = false;
             this.gameSpeed = 0.1;
+
             this.init();
         },
 
