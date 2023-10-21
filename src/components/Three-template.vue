@@ -209,7 +209,12 @@ export default {
                     gsap.to(this.$refs.preloader, {
                         opacity: 0,
                         onComplete: () => {
-                            this.$refs.preloader.classList.remove("active");
+                            this.$refs.preloader
+                                ? this.$refs.preloader.classList.remove(
+                                      "active"
+                                  )
+                                : "";
+
                             this.player.GetRunAnimation();
                         },
                     });

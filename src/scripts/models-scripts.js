@@ -20,6 +20,11 @@ class BasicCharacterControllerInput {
 	}
 
 	Init() {
+		this.mobileKeys = {
+			left: false,
+			right: false
+		}
+
 		this.keys = {
 			forward: false,
 			backward: false,
@@ -30,6 +35,9 @@ class BasicCharacterControllerInput {
 		};
 		document.addEventListener('keydown', (e) => this.onKeyDown(e), false);
 		document.addEventListener('keyup', (e) => this.onKeyUp(e), false);
+
+		document.addEventListener('touchstart', (e) => this.handleTouchStart(this.getTouches(e)), false);
+		document.addEventListener('touchmove', (e) => this.handleTouchMove(e), false);
 	}
 
 	onKeyDown(event) {
@@ -77,6 +85,44 @@ class BasicCharacterControllerInput {
 				break;
 		}
 	}
+
+	getTouches(e) {
+		return e.touches
+	}
+
+	handleTouchStart(get) {
+		const firstTouch = get[0];
+		this.xDown = firstTouch.clientX;
+		this.yDown = firstTouch.clientY;
+	}
+
+	handleTouchMove(e) {
+		if (!this.xDown || !this.yDown) {
+			return;
+		}
+
+		let xUp = e.touches[0].clientX;
+		let yUp = e.touches[0].clientY;
+
+		let xDiff = this.xDown - xUp;
+		let yDiff = this.yDown - yUp;
+
+		if (Math.abs(xDiff) > Math.abs(yDiff)) {
+
+			(xDiff > 0) ? this.mobileKeys.left = true : this.mobileKeys.right = true;
+			// (xDiff > 0) ? console.log('left') : console.log('right');
+		}
+		// (Math.abs(xDiff), 0) ? "" : "";
+
+		this.xDown = null;
+		this.yDown = null;
+
+		// this.mobileKeys.left = false
+		// this.mobileKeys.right = false
+	}
+
+
+
 };
 
 class FiniteStateMachine {
@@ -458,70 +504,6 @@ class JumpState extends State {
 
 }
 
-// class DrunkState extends State {
-
-
-// 	constructor(parent) {
-// 		super(parent);
-
-// 		this.FinishedCallback = () => {
-// 			this.Finished();
-// 		}
-
-// 		this.prevState
-// 	}
-
-// 	get Name() {
-// 		return 'drunk';
-// 	}
-
-// 	Enter(prevState) {
-// 		this.prevState = this.getPrevName(prevState.Name)
-
-// 		const curAction = this.parent.proxy._animations.get('drunk');
-// 		const mixer = curAction.getMixer();
-// 		mixer.addEventListener('finished', this.FinishedCallback);
-// 		if (prevState) {
-// 			const prevAction = this.parent.proxy._animations.get(prevState.Name);
-
-// 			curAction.reset();
-// 			curAction.setLoop(THREE.LoopOnce, 1);
-// 			curAction.clampWhenFinished = true;
-
-// 			curAction.crossFadeFrom(prevAction, 0.2, true);
-// 			curAction.play();
-// 		} else {
-// 			curAction.play();
-// 		}
-// 	}
-
-// 	Finished() {
-
-// 		this.Cleanup();
-// 		this.parent.SetState(this.prevState);
-
-// 	}
-// 	Cleanup() {
-// 		const action = this.parent.proxy._animations.get('drunk');
-// 		action.getMixer().removeEventListener('finished', this.FinishedCallback);
-// 	}
-
-// 	getPrevName(name) {
-// 		return name
-// 	}
-
-// 	Exit() {
-// 		this.Cleanup()
-
-// 	}
-
-// 	Update(timeElapsed, input) {
-
-// 	}
-
-
-// }
-
 class DrunkState extends State {
 
 	constructor(parent) {
@@ -749,7 +731,6 @@ export class BasicCharacterController {
 
 	}
 
-
 	shortMovingUpdate(delta) {
 
 		if (!this.model) {
@@ -760,8 +741,9 @@ export class BasicCharacterController {
 
 		this.plaerBox.setFromObject(this.model)
 
-		if (this.input.keys.left) {
-
+		if (this.input.keys.left || this.input.mobileKeys.left) {
+			console.log('left')
+			this.input.mobileKeys.left = false
 
 			if (this.currPosition === "center") {
 
@@ -773,6 +755,7 @@ export class BasicCharacterController {
 				});
 				this.currPosition = "left";
 				this.input.keys.left = false;
+
 
 				return
 			}
@@ -787,13 +770,18 @@ export class BasicCharacterController {
 
 				this.currPosition = "center";
 				this.input.keys.left = false;
+
 				return
 			}
 		}
 
-		if (this.input.keys.right) {
+		if (this.input.keys.right || this.input.mobileKeys.right) {
+			console.log('right')
+
+			this.input.mobileKeys.right = false
 
 			if (this.currPosition === "center") {
+
 
 				gsap.to(this.model.position, {
 					duration: 0.5,
@@ -804,6 +792,7 @@ export class BasicCharacterController {
 
 				this.currPosition = "right";
 				this.input.keys.right = false;
+
 				return
 			}
 			if (this.currPosition === "left") {
@@ -816,6 +805,7 @@ export class BasicCharacterController {
 				});
 				this.currPosition = "center";
 				this.input.keys.right = false;
+
 
 				return
 			}
@@ -848,6 +838,18 @@ export class BasicCharacterController {
 			this.input.keys.space = false;
 			return
 		}
+
+		/** mobile */
+
+
+		// if (this.input.mobileKeys.left) {
+		// 	console.log('left')
+		// 	this.input.mobileKeys.left = false
+		// }
+		// if (this.input.mobileKeys.right) {
+		// 	console.log('right')
+		// 	this.input.mobileKeys.right = false
+		// }
 
 	}
 
