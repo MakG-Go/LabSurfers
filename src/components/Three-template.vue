@@ -70,6 +70,13 @@ export default {
         },
     },
 
+    beforeUnmount() {
+        this.destroyScene();
+    },
+    unmounted() {
+        cancelAnimationFrame(this.animationFrameId);
+    },
+
     methods: {
         getStart() {
             this.letsStart = true;
@@ -289,19 +296,23 @@ export default {
         },
 
         resize() {
-            window.addEventListener("resize", () => {
-                this.getSize();
-            });
+            window.addEventListener(
+                "resize",
+                () => {
+                    this.getSize();
+                },
+                false
+            );
         },
 
         orientationchange() {
             window.addEventListener(
                 "orientationchange",
-                (e) => {
+                () => {
                     this.getSize();
-                    window.innerWidth > 719
-                        ? (this.fov.value = 80)
-                        : (this.fov.value = 45);
+                    this.$nextTick(() => {
+                        this.getFov();
+                    });
                 },
                 false
             );
@@ -312,6 +323,49 @@ export default {
                 width: window.innerWidth,
                 height: window.innerHeight,
             };
+        },
+
+        destroyScene() {
+            gsap.killTweensOf(this.targetCamera);
+            window.removeEventListener("orientationchange", () => {
+                this.getSize();
+                this.getFov();
+            });
+            window.removeEventListener("resize", this.resize);
+            window.removeEventListener("mousemove", this.throttledHoverModel);
+            window.removeEventListener("click", this.clickModel);
+
+            this.scene.traverse((child) => {
+                if (child.isMesh) {
+                    child.geometry.dispose();
+                    child.geometry = null;
+                    if (child.material.map) {
+                        child.material.map.dispose();
+                        child.material.map = null;
+                    }
+                    child.material.dispose();
+                    child.material = null;
+
+                    child.userData.parentName = NaN;
+                    child.userData.key = NaN;
+                    child.userData.originalColor = NaN;
+                    if (child instanceof THREE.Texture) {
+                        child.dispose();
+                        child = null;
+                    }
+                }
+            });
+
+            this.meshes = [];
+
+            this.renderer.forceContextLoss();
+            this.renderer.renderLists.dispose();
+            this.renderer.dispose();
+            this.canvas.removeChild(this.renderer.domElement);
+
+            this.renderer = null;
+            this.camera = null;
+            this.scene = null;
         },
 
         tick() {
@@ -547,11 +601,11 @@ export default {
             margin-bottom: 1rem;
         }
 
-        // @media (hover: none) and (pointer: coarse) {
-        //     background-color: rgb(43, 55, 222);
-        //     transform: translateY(-5px);
-        //     box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
-        // }
+        @media (hover: none) and (pointer: coarse) {
+            background-color: rgb(43, 55, 222);
+            transform: translateY(-5px);
+            box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
+        }
         @media (hover: hover) {
             background-color: rgb(43, 55, 222);
             transform: translateY(-5px);
@@ -573,7 +627,7 @@ export default {
                 right: 0;
                 left: 0;
                 top: unset;
-                bottom: 9rem;
+                bottom: 5rem;
             }
         }
     }

@@ -103,10 +103,14 @@ export default {
         flex-direction: column;
         backdrop-filter: blur(5px);
         max-width: 75vw;
+        max-height: 100%;
+        @media screen and (max-width: 719px) {
+            font-size: 12px;
+        }
     }
     &__title {
         color: black;
-        font-size: 22px;
+        font-size: 1.5rem;
         font-weight: 600;
         margin-bottom: 2rem;
     }
@@ -116,13 +120,16 @@ export default {
         border-radius: 10px;
         transform: translateY(0);
         color: white;
-        font-size: 16px;
+        font-size: 1rem;
         font-weight: 600;
         box-shadow: 0px 0px 0px -0px rgba(34, 60, 80, 0);
 
         transition-property: box-shadow, transform, background-color;
         transition-duration: 0.25s;
         transition-timing-function: ease;
+        @media screen and (max-width: 719px) {
+            font-size: 12px;
+        }
 
         &:not(:last-child) {
             margin-bottom: 1rem;
