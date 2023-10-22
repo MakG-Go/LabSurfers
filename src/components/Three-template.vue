@@ -21,7 +21,9 @@ export default {
     },
     data() {
         return {
+            fov: { value: 45 },
             letsStart: false,
+            target: new THREE.Vector3(0, 0, 2),
             color: {
                 fogColor: "#0x000000",
             },
@@ -52,12 +54,13 @@ export default {
     },
 
     mounted() {
+        this.getFov();
         this.changeSpeed = _.throttle(this.setSpeed, 1);
         this.startSpeed = this.gameSpeed;
         this.sizes = this.getSizes();
         this.init();
         this.resize();
-        // this.tick();
+        this.orientationchange();
         this.timer();
     },
 
@@ -70,6 +73,12 @@ export default {
     methods: {
         getStart() {
             this.letsStart = true;
+        },
+
+        getFov() {
+            window.innerWidth < 719
+                ? (this.fov.value = 80)
+                : (this.fov.value = 45);
         },
 
         init() {
@@ -97,7 +106,7 @@ export default {
             this.scene.fog = new THREE.FogExp2(0x000000, 0.04);
 
             this.camera = new THREE.PerspectiveCamera(
-                45,
+                this.fov.value,
                 this.sizes.width / this.sizes.height,
                 0.01,
                 50
@@ -106,7 +115,7 @@ export default {
             this.camera.position.x = 0;
             this.camera.position.y = 2.1;
             this.camera.position.z = -3.5;
-            this.camera.lookAt(0, 0, 4);
+            this.camera.lookAt(this.target);
 
             /**
              * Renderer
@@ -136,50 +145,6 @@ export default {
             this.controls.enableDamping = true;
             this.controls.minDistance = 3;
             this.controls.maxDistance = 20;
-        },
-
-        getGui() {
-            this.gui = new dat.GUI({
-                width: 500,
-            });
-            this.gui
-                .add(this.pointLight.position, "x")
-                .min(-1)
-                .max(5)
-                .step(0.001)
-                .name("P_Light X");
-            this.gui
-                .add(this.pointLight.position, "y")
-                .min(-1)
-                .max(5)
-                .step(0.001)
-                .name("P_Light Y");
-            this.gui
-                .add(this.pointLight.position, "z")
-                .min(-1)
-                .max(20)
-                .step(0.001)
-                .name("P_Light Z");
-            this.gui
-                .add(this.pointLight, "intensity")
-                .min(-1)
-                .max(100)
-                .step(0.001)
-                .name("P_Light intensity");
-            this.gui
-                .add(this.ambientLight, "intensity")
-                .min(0)
-                .max(50)
-                .step(0.001)
-                .name("A_Light intensity");
-            this.gui
-                .add(this.scene.fog, "density")
-                .min(0)
-                .max(100)
-                .step(0.01)
-                .name("fog min");
-
-            this.gui.addColor(this.color, "fogColor").name("Fog color");
         },
 
         getLight() {
@@ -309,22 +274,37 @@ export default {
             this.init();
         },
 
+        getSize() {
+            // Update sizes
+            this.sizes.width = window.innerWidth;
+            this.sizes.height = window.innerHeight;
+
+            // Update camera
+            this.camera.aspect = this.sizes.width / this.sizes.height;
+            this.camera.updateProjectionMatrix();
+
+            // Update renderer
+            this.renderer.setSize(this.sizes.width, this.sizes.height);
+            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        },
+
         resize() {
             window.addEventListener("resize", () => {
-                // Update sizes
-                this.sizes.width = window.innerWidth;
-                this.sizes.height = window.innerHeight;
-
-                // Update camera
-                this.camera.aspect = this.sizes.width / this.sizes.height;
-                this.camera.updateProjectionMatrix();
-
-                // Update renderer
-                this.renderer.setSize(this.sizes.width, this.sizes.height);
-                this.renderer.setPixelRatio(
-                    Math.min(window.devicePixelRatio, 2)
-                );
+                this.getSize();
             });
+        },
+
+        orientationchange() {
+            window.addEventListener(
+                "orientationchange",
+                (e) => {
+                    this.getSize();
+                    window.innerWidth > 719
+                        ? (this.fov.value = 80)
+                        : (this.fov.value = 45);
+                },
+                false
+            );
         },
 
         getSizes() {
@@ -335,9 +315,11 @@ export default {
         },
 
         tick() {
-            let lastDelta = null;
             let delta = this.clock.getDelta();
             this.pause ? this.clock.stop() : this.clock.start();
+
+            this.camera.fov = this.fov.value;
+            this.camera.updateProjectionMatrix();
 
             this.meshes.length > 0
                 ? this.meshes.forEach((m) => {
@@ -422,6 +404,86 @@ export default {
                 this.player.GetDetectedColide(false);
             }
         },
+
+        getGui() {
+            this.gui = new dat.GUI({
+                width: 500,
+            });
+            this.gui
+                .add(this.pointLight.position, "x")
+                .min(-1)
+                .max(5)
+                .step(0.001)
+                .name("P_Light X");
+            this.gui
+                .add(this.pointLight.position, "y")
+                .min(-1)
+                .max(5)
+                .step(0.001)
+                .name("P_Light Y");
+            this.gui
+                .add(this.pointLight.position, "z")
+                .min(-1)
+                .max(20)
+                .step(0.001)
+                .name("P_Light Z");
+            this.gui
+                .add(this.pointLight, "intensity")
+                .min(-1)
+                .max(100)
+                .step(0.001)
+                .name("P_Light intensity");
+            this.gui
+                .add(this.ambientLight, "intensity")
+                .min(0)
+                .max(50)
+                .step(0.001)
+                .name("A_Light intensity");
+            this.gui
+                .add(this.scene.fog, "density")
+                .min(0)
+                .max(100)
+                .step(0.01)
+                .name("fog min");
+
+            this.gui.addColor(this.color, "fogColor").name("Fog color");
+
+            this.gui
+                .add(this.fov, "value")
+                .min(0)
+                .max(100)
+                .step(1)
+                .name("Camera Fov")
+                .onFinishChange(this.camera.updateProjectionMatrix());
+
+            this.gui
+                .add(this.camera.position, "y")
+                .min(0)
+                .max(10)
+                .step(0.01)
+                .name("Camera Y");
+
+            this.gui
+                .add(this.camera.position, "z")
+                .min(-10)
+                .max(0)
+                .step(0.01)
+                .name("Camera z");
+            this.gui
+                .add(this.target, "z")
+                .min(0)
+                .max(10)
+                .step(0.01)
+                .name("Camera target Z")
+                .onFinishChange(this.camera.updateProjectionMatrix());
+            this.gui
+                .add(this.target, "y")
+                .min(-2)
+                .max(10)
+                .step(0.01)
+                .name("Camera target Y")
+                .onFinishChange(this.camera.updateProjectionMatrix());
+        },
     },
 };
 </script>
@@ -449,7 +511,7 @@ export default {
         >
         </QuestionsVue>
         <Splash @get-start="getStart" v-if="!letsStart"></Splash>>
-        <div class="webGl__btn_container">
+        <div class="webGl__btn_container" ref="pauseBtn">
             <button @click="getPause" class="webGl__btn">Pause</button>
         </div>
     </div>
@@ -469,7 +531,7 @@ export default {
 
     &__btn {
         padding: 1rem;
-        background-color: rgb(0, 0, 0);
+        background-color: rgb(48, 59, 78);
         border-radius: 10px;
         transform: translateY(0);
         color: white;
@@ -485,11 +547,17 @@ export default {
             margin-bottom: 1rem;
         }
 
-        &:hover {
+        // @media (hover: none) and (pointer: coarse) {
+        //     background-color: rgb(43, 55, 222);
+        //     transform: translateY(-5px);
+        //     box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
+        // }
+        @media (hover: hover) {
             background-color: rgb(43, 55, 222);
             transform: translateY(-5px);
             box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
         }
+
         &:focus {
             outline: none;
         }
@@ -500,6 +568,13 @@ export default {
             position: absolute;
             right: 2rem;
             top: 8rem;
+
+            @media screen and (max-width: 719px) {
+                right: 0;
+                left: 0;
+                top: unset;
+                bottom: 9rem;
+            }
         }
     }
 }
@@ -512,7 +587,8 @@ export default {
         z-index: 4;
     }
     &_number {
-        color: white;
+        color: rgb(48, 59, 78);
+        font-weight: bold;
         font-size: 2rem;
     }
 }

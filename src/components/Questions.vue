@@ -102,6 +102,7 @@ export default {
         display: flex;
         flex-direction: column;
         backdrop-filter: blur(5px);
+        max-width: 75vw;
     }
     &__title {
         color: black;
@@ -111,7 +112,7 @@ export default {
     }
     &__answer {
         padding: 1rem;
-        background-color: rgb(109, 91, 188);
+        background-color: rgb(116 64 0);
         border-radius: 10px;
         transform: translateY(0);
         color: white;
@@ -127,8 +128,8 @@ export default {
             margin-bottom: 1rem;
         }
 
-        &:hover {
-            background-color: rgb(43, 55, 222);
+        @media (hover: hover) {
+            background-color: rgb(177, 97, 0);
             transform: translateY(-5px);
             box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
         }

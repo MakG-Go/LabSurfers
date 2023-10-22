@@ -41,6 +41,7 @@ export default {
         backdrop-filter: blur(3px);
     }
     &__container {
+        max-width: 75vw;
         background-color: rgba(255, 255, 255, 0.45);
         padding: 2rem;
         border-radius: 50px;
@@ -50,7 +51,7 @@ export default {
     }
     &__restart {
         padding: 1rem;
-        background-color: rgb(109, 91, 188);
+        background-color: rgb(48, 59, 78);
         border-radius: 10px;
         transform: translateY(0);
         color: white;
@@ -66,11 +67,17 @@ export default {
             margin-bottom: 1rem;
         }
 
-        &:hover {
+        @media (hover: hover) {
             background-color: rgb(43, 55, 222);
             transform: translateY(-5px);
             box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
         }
+
+        // &:hover {
+        //     background-color: rgb(43, 55, 222);
+        //     transform: translateY(-5px);
+        //     box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
+        // }
     }
 }
 </style>

@@ -238,10 +238,10 @@ class RunState extends State {
 		if (input.keys.space) {
 			this.parent.SetState('run-jump');
 		}
-		else if (input.keys.left) {
+		else if (input.keys.left || input.mobileKeys.left) {
 			this.parent.SetState('run-left');
 		}
-		else if (input.keys.right) {
+		else if (input.keys.right || input.mobileKeys.right) {
 			this.parent.SetState('run-right');
 		}
 	}
@@ -284,7 +284,7 @@ class RunLeft extends State {
 	}
 
 	Update(timeElapsed, input) {
-		if (input.keys.left) {
+		if (input.keys.left || input.mobileKeys.left) {
 			if (input.keys.space) {
 				this.parent.SetState('run-jump');
 			}
@@ -332,7 +332,7 @@ class RunRight extends State {
 	}
 
 	Update(timeElapsed, input) {
-		if (input.keys.right) {
+		if (input.keys.right || input.mobileKeys.right) {
 			if (input.keys.space) {
 				this.parent.SetState('run-jump');
 			}
@@ -731,7 +731,7 @@ export class BasicCharacterController {
 
 	}
 
-	shortMovingUpdate(delta) {
+	shortMovingUpdate() {
 
 		if (!this.model) {
 			return;
@@ -742,8 +742,7 @@ export class BasicCharacterController {
 		this.plaerBox.setFromObject(this.model)
 
 		if (this.input.keys.left || this.input.mobileKeys.left) {
-			console.log('left')
-			this.input.mobileKeys.left = false
+
 
 			if (this.currPosition === "center") {
 
@@ -755,6 +754,7 @@ export class BasicCharacterController {
 				});
 				this.currPosition = "left";
 				this.input.keys.left = false;
+				this.input.mobileKeys.left = false
 
 
 				return
@@ -770,15 +770,13 @@ export class BasicCharacterController {
 
 				this.currPosition = "center";
 				this.input.keys.left = false;
+				this.input.mobileKeys.left = false
 
 				return
 			}
 		}
 
 		if (this.input.keys.right || this.input.mobileKeys.right) {
-			console.log('right')
-
-			this.input.mobileKeys.right = false
 
 			if (this.currPosition === "center") {
 
@@ -792,6 +790,7 @@ export class BasicCharacterController {
 
 				this.currPosition = "right";
 				this.input.keys.right = false;
+				this.input.mobileKeys.right = false
 
 				return
 			}
@@ -805,7 +804,7 @@ export class BasicCharacterController {
 				});
 				this.currPosition = "center";
 				this.input.keys.right = false;
-
+				this.input.mobileKeys.right = false
 
 				return
 			}

@@ -5,12 +5,12 @@
                 <h1>{{ title }}</h1>
                 <div class="splash__keys">
                     <div>
-                        <h1>A</h1>
-                        <p>В лево</p>
+                        <h1>{{ getTextLeft.title }}</h1>
+                        <p>{{ getTextLeft.descripton }}</p>
                     </div>
                     <div>
-                        <h1>D</h1>
-                        <p>В право</p>
+                        <h1>{{ getTextRight.title }}</h1>
+                        <p>{{ getTextRight.descripton }}</p>
                     </div>
                 </div>
                 <button class="splash__btn" @click="getStart">ПОНЕСЛАСЬ</button>
@@ -20,15 +20,58 @@
 </template>
 
 <script>
+import { GetDetectMobile } from "@/scripts/mobileDetect.js";
 export default {
     data() {
         return {
-            title: "Для управления используй клавиши",
+            mobile: null,
+            title: "Управление",
+            text: {
+                left: {
+                    desctop: {
+                        title: "A",
+                        descripton: "В лево",
+                    },
+                    mobile: {
+                        title: "Свайп в лево",
+                        descripton: "В лево",
+                    },
+                },
+                right: {
+                    desctop: {
+                        title: "D",
+                        descripton: "В право",
+                    },
+                    mobile: {
+                        title: "Свайп в право",
+                        descripton: "В право",
+                    },
+                },
+            },
         };
     },
     methods: {
         getStart() {
             this.$emit("get-start", true);
+        },
+    },
+    mounted() {
+        this.mobile = GetDetectMobile();
+    },
+    computed: {
+        getTextLeft() {
+            if (this.mobile !== null) {
+                return this.text.left.mobile;
+            } else {
+                return this.text.left.desctop;
+            }
+        },
+        getTextRight() {
+            if (this.mobile !== null) {
+                return this.text.right.mobile;
+            } else {
+                return this.text.right.desctop;
+            }
         },
     },
 };
@@ -46,10 +89,11 @@ export default {
         align-items: center;
         justify-content: center;
         z-index: 4;
-        background-color: rgba(0, 2, 52, 0.846);
+        background-color: rgba(0, 0, 0, 0.846);
         backdrop-filter: blur(3px);
     }
     &__container {
+        width: 75vw;
         background-color: rgba(255, 255, 255, 0.45);
         padding: 2rem;
         border-radius: 50px;
