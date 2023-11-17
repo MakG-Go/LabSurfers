@@ -12,12 +12,14 @@ import { WorldManager } from "@/scripts/world.js";
 import QuestionsVue from "@/components/Questions.vue";
 import GameOverVue from "@/components//GameOver.vue";
 import Splash from "@/components//Splash.vue";
+import Audio from "./Audio.vue";
 
 export default {
     components: {
         QuestionsVue,
         GameOverVue,
         Splash,
+        Audio,
     },
     data() {
         return {
@@ -544,6 +546,11 @@ export default {
 
 <template>
     <div>
+        <Audio
+            :start="letsStart"
+            :volume-params="0.8"
+            :music-data="'./music/back.mp3'"
+        ></Audio>
         <div class="preloader active" ref="preloader">
             <div class="cssload-spin-box"></div>
         </div>

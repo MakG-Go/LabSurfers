@@ -21,6 +21,7 @@
 
 <script>
 import { GetDetectMobile } from "@/scripts/mobileDetect.js";
+
 export default {
     data() {
         return {
