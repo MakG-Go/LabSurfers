@@ -1,0 +1,14 @@
+.score {
+    &_container {
+        position: absolute;
+        top: 0;
+        right: 1rem;
+        padding: 1rem;
+        z-index: 3;
+    }
+    &_number {
+        color: rgb(48, 59, 78);
+        font-weight: bold;
+        font-size: 2rem;
+    }
+}

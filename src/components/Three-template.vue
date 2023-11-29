@@ -21,6 +21,10 @@ export default {
         Splash,
         Audio,
     },
+    props: {
+        getArea: { type: String, default: "models/ground_2.glb" },
+    },
+
     data() {
         return {
             fov: { value: 45 },
@@ -34,9 +38,9 @@ export default {
                     url: "models/animate.glb",
                     position: { x: 0, y: 0, z: 0 },
                 },
-                ground: {
-                    url: "models/ground.glb",
-                },
+                // ground: {
+                //     url: "models/ground_2.glb",
+                // },
                 doors: ["models/door-3.glb", "models/door-2.glb"],
             },
             mixers: [],
@@ -86,8 +90,8 @@ export default {
 
         getFov() {
             window.innerWidth < 719
-                ? (this.fov.value = 80)
-                : (this.fov.value = 45);
+                ? (this.fov.value = 45)
+                : (this.fov.value = 80);
         },
 
         init() {
@@ -97,7 +101,7 @@ export default {
 
             this.getLight();
 
-            this.ground = this.getGround(this.model.ground);
+            this.ground = this.getGround(this.getArea);
             this.player = this.getModel(this.model.character);
             this.world = this.getWorld(this.player, this.ground);
 
@@ -214,7 +218,7 @@ export default {
             return newModel;
         },
 
-        getGround({ url }) {
+        getGround(url) {
             const ground = new Ground({
                 model: url,
                 scene: this.scene,
@@ -285,15 +289,21 @@ export default {
 
         getSize() {
             // Update sizes
-            this.sizes.width = window.innerWidth;
-            this.sizes.height = window.innerHeight;
+            let w, h;
+
+            // this.sizes.width = window.innerWidth;
+            // this.sizes.height = window.innerHeight;
+            w = window.innerWidth;
+            h = window.innerHeight;
+
+            console.log(w, h);
 
             // Update camera
-            this.camera.aspect = this.sizes.width / this.sizes.height;
+            this.camera.aspect = w / h;
             this.camera.updateProjectionMatrix();
 
             // Update renderer
-            this.renderer.setSize(this.sizes.width, this.sizes.height);
+            this.renderer.setSize(w, h);
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         },
 
@@ -413,11 +423,6 @@ export default {
         },
 
         setSpeed() {
-            // if (this.score > 1000) {
-            //     this.scene.fog.density < 0.16
-            //         ? (this.scene.fog.density += 0.01)
-            //         : "";
-            // }
             if (this.score === 0) return;
 
             if (this.score % 500 == 0) {
@@ -540,6 +545,10 @@ export default {
                 .name("Camera target Y")
                 .onFinishChange(this.camera.updateProjectionMatrix());
         },
+
+        newArea() {
+            this.$emit("new-area");
+        },
     },
 };
 </script>
@@ -547,10 +556,13 @@ export default {
 <template>
     <div>
         <Audio
+            :show-question="showQuestion"
+            :pause="pause"
             :start="letsStart"
             :volume-params="0.8"
             :music-data="'./music/back.mp3'"
         ></Audio>
+
         <div class="preloader active" ref="preloader">
             <div class="cssload-spin-box"></div>
         </div>
@@ -559,11 +571,14 @@ export default {
         <div class="score_container">
             <p class="score_number">Score: {{ score }}</p>
         </div>
+
         <GameOverVue
             v-if="gameover"
             :total-score="score"
             @get-restart="restart"
+            @new-area="newArea"
         ></GameOverVue>
+
         <QuestionsVue
             v-if="showQuestion && !gameover"
             :start-question="showQuestion"
@@ -571,7 +586,9 @@ export default {
             @get-correct="getCorrect"
         >
         </QuestionsVue>
-        <Splash @get-start="getStart" v-if="!letsStart"></Splash>>
+
+        <Splash @get-start="getStart" v-if="!letsStart"></Splash>
+
         <div class="webGl__btn_container" ref="pauseBtn">
             <button @click="getPause" class="webGl__btn">Pause</button>
         </div>
@@ -579,91 +596,91 @@ export default {
 </template>
 
 <style lang="scss">
-.webGl {
-    position: fixed;
-    top: 0;
-    left: 0;
-    outline: none;
-    clip-path: circle(100%);
-    transition-property: clip-path, height;
-    transition-duration: 0.8s;
-    transition-timing-function: ease-in-out;
-    z-index: 1;
+// .webGl {
+//     position: fixed;
+//     top: 0;
+//     left: 0;
+//     outline: none;
+//     clip-path: circle(100%);
+//     transition-property: clip-path, height;
+//     transition-duration: 0.8s;
+//     transition-timing-function: ease-in-out;
+//     z-index: 1;
 
-    &__btn {
-        padding: 1rem;
-        background-color: rgb(48, 59, 78);
-        border-radius: 10px;
-        transform: translateY(0);
-        color: white;
-        font-size: 16px;
-        font-weight: 600;
-        box-shadow: 0px 0px 0px -0px rgba(34, 60, 80, 0);
+//     &__btn {
+//         padding: 1rem;
+//         background-color: rgb(48, 59, 78);
+//         border-radius: 10px;
+//         transform: translateY(0);
+//         color: white;
+//         font-size: 16px;
+//         font-weight: 600;
+//         box-shadow: 0px 0px 0px -0px rgba(34, 60, 80, 0);
 
-        transition-property: box-shadow, transform, background-color;
-        transition-duration: 0.25s;
-        transition-timing-function: ease;
+//         transition-property: box-shadow, transform, background-color;
+//         transition-duration: 0.25s;
+//         transition-timing-function: ease;
 
-        &:not(:last-child) {
-            margin-bottom: 1rem;
-        }
+//         &:not(:last-child) {
+//             margin-bottom: 1rem;
+//         }
 
-        @media (hover: none) and (pointer: coarse) {
-            background-color: rgb(43, 55, 222);
-            transform: translateY(-5px);
-            box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
-        }
-        @media (hover: hover) {
-            background-color: rgb(43, 55, 222);
-            transform: translateY(-5px);
-            box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
-        }
+//         @media (hover: none) and (pointer: coarse) {
+//             background-color: rgb(43, 55, 222);
+//             transform: translateY(-5px);
+//             box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
+//         }
+//         @media (hover: hover) {
+//             background-color: rgb(43, 55, 222);
+//             transform: translateY(-5px);
+//             box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
+//         }
 
-        &:focus {
-            outline: none;
-        }
-        &_container {
-            z-index: 2;
-            display: flex;
-            justify-content: center;
-            position: absolute;
-            right: 2rem;
-            top: 8rem;
+//         &:focus {
+//             outline: none;
+//         }
+//         &_container {
+//             z-index: 2;
+//             display: flex;
+//             justify-content: center;
+//             position: absolute;
+//             right: 2rem;
+//             top: 8rem;
 
-            @media screen and (max-width: 719px) {
-                right: 0;
-                left: 0;
-                top: unset;
-                bottom: 5rem;
-            }
-        }
-    }
-}
-.score {
-    &_container {
-        position: absolute;
-        top: 0;
-        right: 1rem;
-        padding: 1rem;
-        z-index: 4;
-    }
-    &_number {
-        color: rgb(48, 59, 78);
-        font-weight: bold;
-        font-size: 2rem;
-    }
-}
-.preloader {
-    width: 100lvw;
-    height: 100lvh;
-    position: absolute;
-    z-index: -1;
-    top: 0;
-    left: 0;
-    right: 0;
-    background-color: black;
-    &.active {
-        z-index: 99;
-    }
-}
+//             @media screen and (max-width: 719px) {
+//                 right: 0;
+//                 left: 0;
+//                 top: unset;
+//                 bottom: 5rem;
+//             }
+//         }
+//     }
+// }
+// .score {
+//     &_container {
+//         position: absolute;
+//         top: 0;
+//         right: 1rem;
+//         padding: 1rem;
+//         z-index: 4;
+//     }
+//     &_number {
+//         color: rgb(48, 59, 78);
+//         font-weight: bold;
+//         font-size: 2rem;
+//     }
+// }
+// .preloader {
+//     width: 100lvw;
+//     height: 100lvh;
+//     position: absolute;
+//     z-index: -1;
+//     top: 0;
+//     left: 0;
+//     right: 0;
+//     background-color: black;
+//     &.active {
+//         z-index: 99;
+//     }
+// }
 </style>
