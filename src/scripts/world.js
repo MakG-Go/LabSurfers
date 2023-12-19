@@ -16,11 +16,14 @@ class WorldObject {
 
 		this.character = character
 
-		this.loadModel()
+		this.loadModel(this.params)
 	}
 
-	loadModel() {
+	loadModel(params) {
+
+		this.params = params
 		this._manager = new THREE.LoadingManager();
+
 		new GLTFLoader(this._manager).load(this.params.enemies[this.side], (gltf) => {
 
 			this.model = gltf.scene;
@@ -31,10 +34,17 @@ class WorldObject {
 			this.model.traverse((child) => {
 
 				if (child.isMesh) {
+
+					child.material.envMap = this.params.environment;
+					child.material.envMapIntensity = 3;
+					child.material.needsUpdate = true;
+
+
 					child.frustumCulled = false;
 				}
 
 				if (child.isSkinnedMesh) {
+
 					this.skinnedMesh = child
 				}
 

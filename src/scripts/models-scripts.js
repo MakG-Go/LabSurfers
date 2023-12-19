@@ -35,6 +35,7 @@ class BasicCharacterControllerInput {
 			space: false,
 			shift: false,
 		};
+
 		document.addEventListener('keydown', (e) => this.onKeyDown(e), false);
 		document.addEventListener('keyup', (e) => this.onKeyUp(e), false);
 
@@ -48,18 +49,18 @@ class BasicCharacterControllerInput {
 
 		switch (event.keyCode) {
 
-			case 87: // w
-				this.keys.forward = true;
-				break;
-			case 65: // a
-				this.keys.left = true;
-				break;
-			case 83: // s
-				this.keys.backward = true;
-				break;
-			case 68: // d
-				this.keys.right = true;
-				break;
+			// case 87: // w
+			// 	this.keys.forward = true;
+			// 	break;
+			// case 65: // a
+			// 	this.keys.left = true;
+			// 	break;
+			// case 83: // s
+			// 	this.keys.backward = true;
+			// 	break;
+			// case 68: // d
+			// 	this.keys.right = true;
+			// 	break;
 			case 32: // SPACE
 
 				console.log(event.keyCode, "keyCode")
@@ -79,18 +80,18 @@ class BasicCharacterControllerInput {
 
 	onKeyUp(event) {
 		switch (event.keyCode) {
-			case 87: // w
-				this.keys.forward = false;
-				break;
-			case 65: // a
-				this.keys.left = false;
-				break;
-			case 83: // s
-				this.keys.backward = false;
-				break;
-			case 68: // d
-				this.keys.right = false;
-				break;
+			// case 87: // w
+			// 	this.keys.forward = false;
+			// 	break;
+			// case 65: // a
+			// 	this.keys.left = false;
+			// 	break;
+			// case 83: // s
+			// 	this.keys.backward = false;
+			// 	break;
+			// case 68: // d
+			// 	this.keys.right = false;
+			// 	break;
 			case 32: // SPACE
 				this.pressing_button = ''
 				this.keys.space = false;
@@ -614,11 +615,15 @@ export class BasicCharacterController {
 			this.model.updateMatrixWorld(true)
 
 			this.model.traverse((child) => {
+
 				if (child.isMesh) {
 
+					child.material.envMap = this.params.environment;
+					child.material.envMapIntensity = 6;
 
 					child.castShadow = true
 					child.frustumCulled = false;
+					child.material.needsUpdate = true;
 
 					if (child.name === "alpha") {
 						child.material.transparent = true;
@@ -647,10 +652,11 @@ export class BasicCharacterController {
 			this.shortMovePosition.up.max = this.plaerBox.max
 			this.shortMovePosition.up.disable = this.plaerBox.min.y
 
-			console.log(this.plaerBox, "plaerBox");
-			console.log(this.shortMovePosition, "shortMovePosition");
+
 			/** -------------------------------------------------------- */
 
+			// console.log(this.plaerBox, "plaerBox");
+			// console.log(this.shortMovePosition, "shortMovePosition");
 
 			// this.boxHelper = new THREE.BoxHelper(this.model, 0xffff00);
 			// this.boxHelper.position.copy(this.model.position)
@@ -658,13 +664,11 @@ export class BasicCharacterController {
 
 			// this.model.add(this.boxHelper)
 
-
 			this.mixer = new AnimationMixer(this.model);
 
 			this.SetupAnimations();
 
 			this.params.mixers.push(this.mixer);
-
 
 			// console.log(this.boxHelper.scale, 'helper')
 			// console.log(this.plaerBox, 'Box3')

@@ -55,8 +55,8 @@ export default {
             checkSpeed: false,
 
             startSpeed: null,
-            gameSpeed: 0.1,
-            maxSpeed: 0.18,
+            gameSpeed: 0.3,
+            maxSpeed: 0.8,
 
             score: 0,
             showQuestion: false,
@@ -177,7 +177,7 @@ export default {
         getLight() {
             /** Light */
 
-            this.ambientLight = new THREE.AmbientLight(0x404040, 38);
+            this.ambientLight = new THREE.AmbientLight(0x404040, 7);
             this.scene.add(this.ambientLight);
 
             this.pointLight = new THREE.PointLight(0x404040, 1000, 100);
@@ -229,6 +229,7 @@ export default {
                 meshStore: this.meshes,
                 mixers: this.mixers,
                 preloader: this.getLoadStatus(),
+                environment: this.environmentMap,
             });
 
             this.meshes.push(newModel);
@@ -236,13 +237,13 @@ export default {
         },
 
         getGround(area) {
-            console.log(area);
             const ground = new Ground({
                 model: area.area,
                 alpha: area.alpha,
                 scene: this.scene,
                 meshStore: this.meshes,
                 speed: this.gameSpeed,
+                environment: this.environmentMap,
             });
             this.meshes.push(ground);
             return ground;
@@ -255,6 +256,7 @@ export default {
                 player: player,
                 ground: ground,
                 speed: this.gameSpeed,
+                environment: this.environmentMap,
             });
             return newWorld;
         },
@@ -530,7 +532,7 @@ export default {
             this.gui
                 .add(this.pointLight, "intensity")
                 .min(-1)
-                .max(1000)
+                .max(5000)
                 .step(0.001)
                 .name("P_Light intensity");
             this.gui

@@ -15,7 +15,6 @@ export default {
     },
     methods: {
         getChoyse(url) {
-            console.log(url);
             this.choyse = true;
             this.area = url;
         },

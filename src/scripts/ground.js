@@ -16,16 +16,25 @@ export class Ground {
 			this.model = gltf.scene;
 
 			this.model.traverse((child) => {
+
 				if (child.isMesh) {
+
+					child.material.envMap = this.params.environment;
+					child.material.envMapIntensity = 4.2;
+					child.material.needsUpdate = true;
+
+					console.log(child)
+
 					child.receiveShadow = true
 					child.castShadow = true
 					child.frustumCulled = false;
 					child.material.needsUpdate = true
 
-					if (child.material.isMeshStandardMaterial) {
 
-						child.material.envMap = null
-					}
+					// if (child.material.isMeshStandardMaterial) {
+
+					// 	child.material.envMap = null
+					// }
 
 					// console.log(child.name)
 					if (child.name.includes('alpha')) {
@@ -35,8 +44,14 @@ export class Ground {
 						child.material.transparent = true;
 						alphaTexture.flipY = false;
 						texture.flipY = false;
+						child.material.emissiveIntensity = 2.5
+
 						child.material.map = texture
 						child.material.alphaMap = alphaTexture;
+
+						child.receiveShadow = false
+						child.castShadow = false
+
 
 					}
 

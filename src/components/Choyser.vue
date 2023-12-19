@@ -30,7 +30,6 @@ export default {
             this.choyseArea = ndx;
         },
         getStart() {
-            console.log(this.choyseUrl);
             this.$emit("get-choyse", this.choyseUrl);
         },
     },
