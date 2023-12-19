@@ -9,6 +9,8 @@ import { BasicCharacterController } from "@/scripts/models-scripts.js";
 import { Ground } from "@/scripts/ground.js";
 import { WorldManager } from "@/scripts/world.js";
 
+import { GetDetectMobile } from "@/scripts/mobileDetect.js";
+
 import QuestionsVue from "@/components/Questions.vue";
 import GameOverVue from "@/components//GameOver.vue";
 import Splash from "@/components//Splash.vue";
@@ -22,21 +24,24 @@ export default {
         Audio,
     },
     props: {
-        getArea: { type: String, default: "models/ground_2.glb" },
+        getArea: { type: Object, default: () => {} },
     },
 
     data() {
         return {
+            mobile: null,
             fov: { value: 45 },
             letsStart: false,
-            target: new THREE.Vector3(0, 0, 2),
+            target: new THREE.Vector3(0, 0, 6.5),
             color: {
                 fogColor: "#0x000000",
             },
             model: {
                 character: {
-                    url: "models/animate.glb",
+                    url: "models/toy_1.glb",
                     position: { x: 0, y: 0, z: 0 },
+                    scale: { x: 1, y: 1, z: 1 },
+                    alpha: new THREE.TextureLoader().load("textures/hear.jpg"),
                 },
                 // ground: {
                 //     url: "models/ground_2.glb",
@@ -57,6 +62,11 @@ export default {
             showQuestion: false,
             // controls: null,
         };
+    },
+
+    created() {
+        this.mobile = GetDetectMobile();
+        console.log(this.mobile);
     },
 
     mounted() {
@@ -89,9 +99,12 @@ export default {
         },
 
         getFov() {
-            window.innerWidth < 719
-                ? (this.fov.value = 45)
-                : (this.fov.value = 80);
+            // window.innerWidth < 719
+            //     ? (this.fov.value = 45)
+            //     : (this.fov.value = 80);
+            this.mobile.mobile != null || this.mobile.tablet != null
+                ? (this.fov.value = 80)
+                : (this.fov.value = 45);
         },
 
         init() {
@@ -100,12 +113,13 @@ export default {
             // this.createOrbitControl();
 
             this.getLight();
+            this.getEnvierment();
 
             this.ground = this.getGround(this.getArea);
             this.player = this.getModel(this.model.character);
             this.world = this.getWorld(this.player, this.ground);
 
-            // this.getGui();
+            this.getGui();
 
             /** Clock */
 
@@ -115,8 +129,8 @@ export default {
         createScene() {
             this.canvas = this.$refs.webGl;
             this.scene = new THREE.Scene();
-            this.scene.background = new THREE.Color(0x000000);
-            this.scene.fog = new THREE.FogExp2(0x000000, 0.04);
+            this.scene.background = new THREE.Color(0xffffff);
+            this.scene.fog = new THREE.FogExp2(0xffffff, 0.04);
 
             this.camera = new THREE.PerspectiveCamera(
                 this.fov.value,
@@ -126,8 +140,8 @@ export default {
             );
 
             this.camera.position.x = 0;
-            this.camera.position.y = 2.1;
-            this.camera.position.z = -3.5;
+            this.camera.position.y = 3.45;
+            this.camera.position.z = -4.5;
             this.camera.lookAt(this.target);
 
             /**
@@ -163,13 +177,14 @@ export default {
         getLight() {
             /** Light */
 
-            this.ambientLight = new THREE.AmbientLight(0x404040, 15);
+            this.ambientLight = new THREE.AmbientLight(0x404040, 38);
             this.scene.add(this.ambientLight);
 
-            this.pointLight = new THREE.PointLight(0x404040, 16, 100);
+            this.pointLight = new THREE.PointLight(0x404040, 1000, 100);
             this.pointLight.position.x = 0;
-            this.pointLight.position.y = 3.5;
-            this.pointLight.position.z = 20;
+            this.pointLight.position.y = 8;
+            this.pointLight.position.z = -6;
+            this.pointLight.shadow.bias = -0.002;
             this.sphereSize = 1;
             this.pointLight.castShadow = true;
             // this.pointLightHelper = new THREE.PointLightHelper(
@@ -204,13 +219,15 @@ export default {
             );
         },
 
-        getModel({ url, position }) {
+        getModel({ url, position, scale, alpha }) {
             const newModel = new BasicCharacterController({
                 model: url,
+                scale: new THREE.Vector3(scale.x, scale.y, scale.z),
+                alpha: alpha,
+                pos: new THREE.Vector3(position.x, position.y, position.z),
                 scene: this.scene,
                 meshStore: this.meshes,
                 mixers: this.mixers,
-                pos: new THREE.Vector3(position.x, position.y, position.z),
                 preloader: this.getLoadStatus(),
             });
 
@@ -218,9 +235,11 @@ export default {
             return newModel;
         },
 
-        getGround(url) {
+        getGround(area) {
+            console.log(area);
             const ground = new Ground({
-                model: url,
+                model: area.area,
+                alpha: area.alpha,
                 scene: this.scene,
                 meshStore: this.meshes,
                 speed: this.gameSpeed,
@@ -238,6 +257,25 @@ export default {
                 speed: this.gameSpeed,
             });
             return newWorld;
+        },
+
+        getEnvierment() {
+            let path = "environment/";
+            this.cubeTextureLoader = new THREE.CubeTextureLoader();
+            this.environmentMap = this.cubeTextureLoader.load([
+                path + "px.jpg",
+                path + "nx.jpg",
+                path + "py.jpg",
+                path + "ny.jpg",
+                path + "pz.jpg",
+                path + "nz.jpg",
+            ]);
+
+            this.environmentMap.minFilter = THREE.NearestFilter;
+            this.environmentMap.magFilter = THREE.NearestFilter;
+            this.environmentMap.generateMipmaps = false;
+
+            this.environmentMap.colorSpace = THREE.SRGBColorSpace;
         },
 
         restart() {
@@ -384,6 +422,7 @@ export default {
             let delta = this.clock.getDelta();
             this.pause ? this.clock.stop() : this.clock.start();
 
+            this.camera.lookAt(this.target);
             this.camera.fov = this.fov.value;
             this.camera.updateProjectionMatrix();
 
@@ -479,19 +518,19 @@ export default {
             this.gui
                 .add(this.pointLight.position, "y")
                 .min(-1)
-                .max(5)
+                .max(10)
                 .step(0.001)
                 .name("P_Light Y");
             this.gui
                 .add(this.pointLight.position, "z")
-                .min(-1)
+                .min(-10)
                 .max(20)
                 .step(0.001)
                 .name("P_Light Z");
             this.gui
                 .add(this.pointLight, "intensity")
                 .min(-1)
-                .max(100)
+                .max(1000)
                 .step(0.001)
                 .name("P_Light intensity");
             this.gui
@@ -563,7 +602,11 @@ export default {
             :music-data="'./music/back.mp3'"
         ></Audio>
 
-        <div class="preloader active" ref="preloader">
+        <!-- <div class="preloader active" ref="preloader">
+            <div class="cssload-spin-box"></div>
+        </div> -->
+
+        <div class="preloader" ref="preloader">
             <div class="cssload-spin-box"></div>
         </div>
 
@@ -596,91 +639,4 @@ export default {
 </template>
 
 <style lang="scss">
-// .webGl {
-//     position: fixed;
-//     top: 0;
-//     left: 0;
-//     outline: none;
-//     clip-path: circle(100%);
-//     transition-property: clip-path, height;
-//     transition-duration: 0.8s;
-//     transition-timing-function: ease-in-out;
-//     z-index: 1;
-
-//     &__btn {
-//         padding: 1rem;
-//         background-color: rgb(48, 59, 78);
-//         border-radius: 10px;
-//         transform: translateY(0);
-//         color: white;
-//         font-size: 16px;
-//         font-weight: 600;
-//         box-shadow: 0px 0px 0px -0px rgba(34, 60, 80, 0);
-
-//         transition-property: box-shadow, transform, background-color;
-//         transition-duration: 0.25s;
-//         transition-timing-function: ease;
-
-//         &:not(:last-child) {
-//             margin-bottom: 1rem;
-//         }
-
-//         @media (hover: none) and (pointer: coarse) {
-//             background-color: rgb(43, 55, 222);
-//             transform: translateY(-5px);
-//             box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
-//         }
-//         @media (hover: hover) {
-//             background-color: rgb(43, 55, 222);
-//             transform: translateY(-5px);
-//             box-shadow: 0px 20px 15px -10px rgba(34, 60, 80, 0.5);
-//         }
-
-//         &:focus {
-//             outline: none;
-//         }
-//         &_container {
-//             z-index: 2;
-//             display: flex;
-//             justify-content: center;
-//             position: absolute;
-//             right: 2rem;
-//             top: 8rem;
-
-//             @media screen and (max-width: 719px) {
-//                 right: 0;
-//                 left: 0;
-//                 top: unset;
-//                 bottom: 5rem;
-//             }
-//         }
-//     }
-// }
-// .score {
-//     &_container {
-//         position: absolute;
-//         top: 0;
-//         right: 1rem;
-//         padding: 1rem;
-//         z-index: 4;
-//     }
-//     &_number {
-//         color: rgb(48, 59, 78);
-//         font-weight: bold;
-//         font-size: 2rem;
-//     }
-// }
-// .preloader {
-//     width: 100lvw;
-//     height: 100lvh;
-//     position: absolute;
-//     z-index: -1;
-//     top: 0;
-//     left: 0;
-//     right: 0;
-//     background-color: black;
-//     &.active {
-//         z-index: 99;
-//     }
-// }
 </style>

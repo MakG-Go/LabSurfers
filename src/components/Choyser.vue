@@ -9,15 +9,16 @@ export default {
                 {
                     url: "/images/land-1.png",
                     name: "Офис",
-                    area: "models/ground.glb",
+                    area: "models/ground_2.glb",
                 },
                 {
                     url: "/images/land-2.png",
                     name: "Орбита",
-                    area: "models/ground_2.glb",
+                    area: "models/ground_light.glb",
+                    alpha: "textures/tree_all_alpha.jpg",
                 },
             ],
-            title: "Выбери локацию и игрока",
+            title: "Выбери локацию",
             choyseArea: null,
             choyceCharacter: null,
             choyseUrl: null,
@@ -29,6 +30,7 @@ export default {
             this.choyseArea = ndx;
         },
         getStart() {
+            console.log(this.choyseUrl);
             this.$emit("get-choyse", this.choyseUrl);
         },
     },
@@ -57,7 +59,7 @@ export default {
                     v-for="(area, key) in areas"
                     :key="area.name + key"
                     :class="getActiveClass(area.name)"
-                    @click="selectArea(area.name, area.area)"
+                    @click="selectArea(area.name, area)"
                     class="choyser__card"
                 >
                     <img class="choyser__img" :src="area.url" alt="" />

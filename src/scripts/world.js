@@ -45,11 +45,11 @@ class WorldObject {
 			this.SetupAnimations()
 
 
-			// this.boxHelper = new THREE.BoxHelper(this.model, 0xff0000);
-			// this.boxHelper.position.copy(this.model.position)
+			this.boxHelper = new THREE.BoxHelper(this.model, 0xff0000);
+			this.boxHelper.position.copy(this.model.position)
 
 			this.params.scene.add(this.model);
-			// this.model.add(this.boxHelper)
+			this.model.add(this.boxHelper)
 
 
 		});
@@ -82,7 +82,7 @@ class WorldObject {
 
 	GetCharacterAnimation() {
 
-		this.character.GetDrunckAnimation()
+		// this.character.GetDrunckAnimation()
 	}
 
 	GetKeybordOff() {
@@ -124,11 +124,13 @@ class WorldObject {
 
 export class WorldManager {
 	constructor(params) {
+
 		this.params = params
 
 		/** Меш и box3 персонажа */
 		this.player = params.player.GetPlayer()
-		this.character = params.player
+
+		params.player ? this.character = params.player : ''
 
 		/** Стена */
 		this.ground = params.ground
@@ -237,7 +239,7 @@ export class WorldManager {
 			}
 
 
-			this.CheckIntersec(item)
+			// this.CheckIntersec(item)
 
 			item.Update(delta)
 		})

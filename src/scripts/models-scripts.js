@@ -1,5 +1,5 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { AnimationMixer } from "three";
+import { AnimationMixer, Vector3 } from "three";
 import * as THREE from "three"
 import { gsap } from 'gsap';
 
@@ -17,9 +17,11 @@ class BasicCharacterControllerProxy {
 class BasicCharacterControllerInput {
 	constructor() {
 		this.Init();
+		this.pressing_button = ''
 	}
 
 	Init() {
+		console.log('init')
 		this.mobileKeys = {
 			left: false,
 			right: false
@@ -38,10 +40,14 @@ class BasicCharacterControllerInput {
 
 		document.addEventListener('touchstart', (e) => this.handleTouchStart(this.getTouches(e)), false);
 		document.addEventListener('touchmove', (e) => this.handleTouchMove(e), false);
+
+		document.removeEventListener('keydown', (e) => this.onKeyDown(e), false);
 	}
 
 	onKeyDown(event) {
+
 		switch (event.keyCode) {
+
 			case 87: // w
 				this.keys.forward = true;
 				break;
@@ -55,7 +61,15 @@ class BasicCharacterControllerInput {
 				this.keys.right = true;
 				break;
 			case 32: // SPACE
-				this.keys.space = true;
+
+				console.log(event.keyCode, "keyCode")
+				console.log(this.pressing_button !== event.keyCode)
+				if (this.pressing_button !== event.keyCode) {
+
+					this.keys.space = true;
+				}
+				this.pressing_button = event.keyCode
+				console.log(this.pressing_button, 'pressing_button')
 				break;
 			case 16: // SHIFT
 				this.keys.shift = true;
@@ -78,6 +92,7 @@ class BasicCharacterControllerInput {
 				this.keys.right = false;
 				break;
 			case 32: // SPACE
+				this.pressing_button = ''
 				this.keys.space = false;
 				break;
 			case 16: // SHIFT
@@ -122,7 +137,6 @@ class BasicCharacterControllerInput {
 	}
 
 
-
 };
 
 class FiniteStateMachine {
@@ -151,7 +165,6 @@ class FiniteStateMachine {
 		}
 
 		const state = new this.states[name](this)
-		// console.log(state, "state in s")
 		this.currentState = state
 		state.Enter(prevState)
 	}
@@ -176,12 +189,12 @@ class CharacterFSM extends FiniteStateMachine {
 	Init() {
 
 		this.AddState('slow-run', RunState);
-		this.AddState('run-left', RunLeft);
-		this.AddState('run-right', RunRight);
+		// this.AddState('run-left', RunLeft);
+		// this.AddState('run-right', RunRight);
 
-		this.AddState('run-jump', JumpState);
-		this.AddState('walk-back', BackWalkState);
-		this.AddState('drunk', DrunkState);
+		this.AddState('jump', JumpState);
+		// this.AddState('walk-back', BackWalkState);
+		// this.AddState('drunk', DrunkState);
 	}
 };
 
@@ -236,7 +249,7 @@ class RunState extends State {
 			this.parent.SetState('walk-back');
 		}
 		if (input.keys.space) {
-			this.parent.SetState('run-jump');
+			this.parent.SetState('jump');
 		}
 		else if (input.keys.left || input.mobileKeys.left) {
 			this.parent.SetState('run-left');
@@ -455,13 +468,13 @@ class JumpState extends State {
 	}
 
 	get Name() {
-		return 'run-jump';
+		return 'jump';
 	}
 
 	Enter(prevState) {
 		this.prevState = this.getPrevName(prevState.Name)
 
-		const curAction = this.parent.proxy._animations.get('run-jump');
+		const curAction = this.parent.proxy._animations.get('jump');
 		const mixer = curAction.getMixer();
 		mixer.addEventListener('finished', this.FinishedCallback);
 		if (prevState) {
@@ -485,7 +498,7 @@ class JumpState extends State {
 
 	}
 	Cleanup() {
-		const action = this.parent.proxy._animations.get('run-jump');
+		const action = this.parent.proxy._animations.get('jump');
 		action.getMixer().removeEventListener('finished', this.FinishedCallback);
 	}
 
@@ -558,11 +571,18 @@ export class BasicCharacterController {
 	constructor(params) {
 		this.Init(params);
 		this.plaerBox = new THREE.Box3()
+
 		this.shortMovePosition = {
 			left: 1.2,
 			center: 0,
 			right: -1.2,
-			up: 0.5
+			up: {
+				min: new THREE.Vector3(),
+				max: new THREE.Vector3(),
+				active: 3,
+				disable: null
+
+			}
 		}
 		this.currPosition = "center"
 		this.interseck = false
@@ -595,16 +615,42 @@ export class BasicCharacterController {
 
 			this.model.traverse((child) => {
 				if (child.isMesh) {
+
+
 					child.castShadow = true
 					child.frustumCulled = false;
 
+					if (child.name === "alpha") {
+						child.material.transparent = true;
+						this.params.alpha.flipY = false;
+						child.material.alphaMap = this.params.alpha;
+
+					}
 				}
+
+
 			})
 
+			/** Добавляем анимации в хранилище и модель к сцене */
 			this.model.animations = gltf.animations;
 			this.params.scene.add(this.model);
 
+			/** Устанавливаем размер и позицию модели */
+			this.params.scale ? this.model.scale.set(...this.params.scale) : '';
+			this.params.pos ? this.model.position.set(...this.params.pos) : '';
+
+			/** для boundingBox */
+
 			this.plaerBox.setFromObject(this.model)
+
+			this.shortMovePosition.up.min = this.plaerBox.min
+			this.shortMovePosition.up.max = this.plaerBox.max
+			this.shortMovePosition.up.disable = this.plaerBox.min.y
+
+			console.log(this.plaerBox, "plaerBox");
+			console.log(this.shortMovePosition, "shortMovePosition");
+			/** -------------------------------------------------------- */
+
 
 			// this.boxHelper = new THREE.BoxHelper(this.model, 0xffff00);
 			// this.boxHelper.position.copy(this.model.position)
@@ -659,8 +705,6 @@ export class BasicCharacterController {
 		if (this.mixer) {
 			this.mixer.update(delta);
 		}
-
-		// this.CheckColisions()
 	}
 
 	movingUpdate(delta) {
@@ -739,7 +783,7 @@ export class BasicCharacterController {
 
 		if (this.detectedColide) return
 
-		this.plaerBox.setFromObject(this.model)
+		// this.plaerBox.setFromObject(this.model)
 
 		if (this.input.keys.left || this.input.mobileKeys.left) {
 
@@ -812,43 +856,49 @@ export class BasicCharacterController {
 
 		if (this.input.keys.space) {
 
+			// console.log(this.shortMovePosition.up.min, 'custom')
+			// console.log(this.plaerBox.min.y, 'player')
 
-			this.input.keys.space = false;
-
-			gsap.timeline().to(this.model.position, {
+			gsap.timeline().to(this.shortMovePosition.up.min, {
 				duration: 0.5,
-				y: this.shortMovePosition["up"],
+				y: this.shortMovePosition.up.active,
 				ease: 'Expo.easeOut',
-				onComplete: this.input.keys.space = false,
-				onStart: this.input.keys.space = false,
+
+				onStart: () => {
+
+				},
+				onUpdate: () => {
+
+					this.plaerBox.set(this.shortMovePosition.up.min, this.shortMovePosition.up.max)
+				},
+
+				onComplete: () => {
+
+				},
 
 
-			}).to(this.model.position, {
-				duration: 0.55,
-				y: 0,
-				ease: 'Sine.easeOut',
+			})
+				.to(this.shortMovePosition.up.min, {
+					duration: 0.5,
+					y: this.shortMovePosition.up.disable,
+					ease: 'Sine.easeOut',
+					onStart: () => {
 
-				onComplete: this.input.keys.space = false,
-				onStart: this.input.keys.space = false,
+					},
+					onUpdate: () => {
+
+						this.plaerBox.set(this.shortMovePosition.up.min, this.shortMovePosition.up.max)
+					},
+					onComplete: () => {
+
+						this.input.keys.space = false
+					}
+
+				}, '>');
 
 
-			}, ">");
-
-			this.input.keys.space = false;
 			return
 		}
-
-		/** mobile */
-
-
-		// if (this.input.mobileKeys.left) {
-		// 	console.log('left')
-		// 	this.input.mobileKeys.left = false
-		// }
-		// if (this.input.mobileKeys.right) {
-		// 	console.log('right')
-		// 	this.input.mobileKeys.right = false
-		// }
 
 	}
 
@@ -867,6 +917,87 @@ export class BasicCharacterController {
 	GetDetectedColide(detected) {
 		this.detectedColide = detected
 	}
+
+	/** Fore future */
+
+	generateBoundingBox(currentMesh) {
+
+		currentMesh.geometry.computeBoundingBox();
+		this.plaerBox.setFromObject(currentMesh, true);
+		const min = this.plaerBox.min.clone();
+		const max = this.plaerBox.max.clone();
+		const boundingBoxLengths = new Vector3(
+			Math.abs(min.x - max.x),
+			Math.abs(min.y - max.y),
+			Math.abs(min.z - max.z)
+		);
+		let p0 = min;
+		let p1 = new Vector3(min.x + boundingBoxLengths.x, min.y, min.z);
+		let p2 = new Vector3(min.x, min.y + boundingBoxLengths.y, min.z);
+		let p3 = new Vector3(
+			min.x + boundingBoxLengths.x,
+			min.y + boundingBoxLengths.y,
+			min.z
+		);
+		let p4 = new Vector3(min.x, min.y, min.z + boundingBoxLengths.z);
+		let p5 = new Vector3(
+			min.x + boundingBoxLengths.x,
+			min.y,
+			min.z + boundingBoxLengths.z
+		);
+		let p6 = new Vector3(
+			min.x,
+			min.y + boundingBoxLengths.y,
+			min.z + boundingBoxLengths.z
+		);
+		let p7 = max;
+
+		let lineMaterial = new THREE.MeshBasicMaterial({ side: DoubleSide });
+
+		// Front Face
+
+		let L0 = this.generateLinearLine(p0, p1, lineMaterial);
+		let L1 = this.generateLinearLine(p0, p2, lineMaterial);
+		let L2 = this.generateLinearLine(p2, p3, lineMaterial);
+		let L3 = this.generateLinearLine(p1, p3, lineMaterial);
+
+		// Connection between faces
+
+		let L4 = this.generateLinearLine(p0, p4, lineMaterial);
+		let L5 = this.generateLinearLine(p1, p5, lineMaterial);
+		let L6 = this.generateLinearLine(p2, p6, lineMaterial);
+		let L7 = this.generateLinearLine(p3, p7, lineMaterial);
+
+		// Back face
+
+		let L8 = this.generateLinearLine(p4, p5, lineMaterial);
+		let L9 = this.generateLinearLine(p4, p6, lineMaterial);
+		let L10 = this.generateLinearLine(p6, p7, lineMaterial);
+		let L11 = this.generateLinearLine(p5, p7, lineMaterial);
+
+		// Diagonal line
+
+		let L12 = this.generateLinearLine(min, max, lineMaterial);
+
+		let lineGroup = new Group();
+
+		lineGroup.add(L0, L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12);
+
+		return lineGroup;
+	};
+
+	generateLinearLine = (
+		p1,
+		p2,
+		material
+	) => {
+		const points =
+			points.push(p1);
+		points.push(p1);
+		points.push(p2);
+		const geometry = new BufferGeometry().setFromPoints(points);
+		return new Line(geometry, material);
+	};
 
 }
 

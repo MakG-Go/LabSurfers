@@ -56,19 +56,24 @@ export default {
             this.$emit("get-start", true);
         },
     },
-    mounted() {
+    // mounted() {
+    //     this.mobile = GetDetectMobile();
+    //     consile.log(this.mobile);
+    // },
+    created() {
         this.mobile = GetDetectMobile();
+        console.log(this.mobile.mobile);
     },
     computed: {
         getTextLeft() {
-            if (this.mobile !== null) {
+            if (this.mobile.mobile != null || this.mobile.tablet != null) {
                 return this.text.left.mobile;
             } else {
                 return this.text.left.desctop;
             }
         },
         getTextRight() {
-            if (this.mobile !== null) {
+            if (this.mobile.mobile != null || this.mobile.tablet != null) {
                 return this.text.right.mobile;
             } else {
                 return this.text.right.desctop;

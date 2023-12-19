@@ -1,6 +1,6 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { LoadingManager } from "three";
-import * as THREE from 'three'
+import * as THREE from "three";
 
 export class Ground {
 	constructor(params) {
@@ -18,12 +18,26 @@ export class Ground {
 			this.model.traverse((child) => {
 				if (child.isMesh) {
 					child.receiveShadow = true
+					child.castShadow = true
 					child.frustumCulled = false;
 					child.material.needsUpdate = true
 
 					if (child.material.isMeshStandardMaterial) {
 
 						child.material.envMap = null
+					}
+
+					// console.log(child.name)
+					if (child.name.includes('alpha')) {
+						// console.log(child)
+						let alphaTexture = new THREE.TextureLoader().load(this.params.alpha)
+						let texture = new THREE.TextureLoader().load("textures/tree_all.png")
+						child.material.transparent = true;
+						alphaTexture.flipY = false;
+						texture.flipY = false;
+						child.material.map = texture
+						child.material.alphaMap = alphaTexture;
+
 					}
 
 				}
@@ -39,7 +53,7 @@ export class Ground {
 		});
 
 		this._manager.onLoad = () => {
-			console.log('ground is loaded')
+			console.log('ground is loaded ')
 		}
 
 	}
@@ -48,7 +62,7 @@ export class Ground {
 		if (!this.model) return
 
 
-		if (this.model.position.z > -18) {
+		if (this.model.position.z > -72) {
 			this.model.position.z -= this.speed
 		}
 		else {
