@@ -36,6 +36,7 @@ export default {
             color: {
                 fogColor: "#0x000000",
             },
+
             model: {
                 character: {
                     url: "models/toy_1.glb",
@@ -43,9 +44,6 @@ export default {
                     scale: { x: 1, y: 1, z: 1 },
                     alpha: new THREE.TextureLoader().load("textures/hear.jpg"),
                 },
-                // ground: {
-                //     url: "models/ground_2.glb",
-                // },
                 doors: ["models/door-3.glb", "models/door-2.glb"],
             },
             mixers: [],
@@ -66,7 +64,7 @@ export default {
 
     created() {
         this.mobile = GetDetectMobile();
-        console.log(this.mobile);
+        console.log(this.getArea);
     },
 
     mounted() {
@@ -117,9 +115,13 @@ export default {
 
             this.ground = this.getGround(this.getArea);
             this.player = this.getModel(this.model.character);
-            this.world = this.getWorld(this.player, this.ground);
+            this.world = this.getEnemies(
+                this.player,
+                this.ground,
+                this.getArea.enemies
+            );
 
-            this.getGui();
+            // this.getGui();
 
             /** Clock */
 
@@ -249,10 +251,10 @@ export default {
             return ground;
         },
 
-        getWorld(player, ground) {
+        getEnemies(player, ground, enemies) {
             const newWorld = new WorldManager({
                 scene: this.scene,
-                enemies: this.model.doors,
+                enemies: enemies,
                 player: player,
                 ground: ground,
                 speed: this.gameSpeed,
@@ -322,7 +324,7 @@ export default {
             this.scene = null;
 
             this.gameover = false;
-            this.gameSpeed = 0.1;
+            this.gameSpeed = 0.3;
 
             this.init();
         },

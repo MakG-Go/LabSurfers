@@ -63,15 +63,17 @@ class BasicCharacterControllerInput {
 			// 	break;
 			case 32: // SPACE
 
-				console.log(event.keyCode, "keyCode")
-				console.log(this.pressing_button !== event.keyCode)
+				// console.log(event.keyCode, "keyCode")
+				// console.log(this.pressing_button !== event.keyCode)
 				if (this.pressing_button !== event.keyCode) {
 
 					this.keys.space = true;
+
 				}
 				this.pressing_button = event.keyCode
-				console.log(this.pressing_button, 'pressing_button')
+				// console.log(this.pressing_button, 'pressing_button')
 				break;
+
 			case 16: // SHIFT
 				this.keys.shift = true;
 				break;
@@ -93,8 +95,11 @@ class BasicCharacterControllerInput {
 			// 	this.keys.right = false;
 			// 	break;
 			case 32: // SPACE
+
 				this.pressing_button = ''
+
 				this.keys.space = false;
+
 				break;
 			case 16: // SHIFT
 				this.keys.shift = false;
@@ -485,7 +490,7 @@ class JumpState extends State {
 			curAction.setLoop(THREE.LoopOnce, 1);
 			curAction.clampWhenFinished = true;
 
-			curAction.crossFadeFrom(prevAction, 0.2, true);
+			curAction.crossFadeFrom(prevAction, 0.1, true);
 			curAction.play();
 		} else {
 			curAction.play();
@@ -571,7 +576,7 @@ class DrunkState extends State {
 export class BasicCharacterController {
 	constructor(params) {
 		this.Init(params);
-		this.plaerBox = new THREE.Box3()
+		this.plaerBox = new THREE.Box3().makeEmpty()
 
 		this.shortMovePosition = {
 			left: 1.2,
@@ -581,7 +586,7 @@ export class BasicCharacterController {
 				min: new THREE.Vector3(),
 				max: new THREE.Vector3(),
 				active: 3,
-				disable: null
+				disable: 2.08
 
 			}
 		}
@@ -614,9 +619,25 @@ export class BasicCharacterController {
 			this.model = gltf.scene;
 			this.model.updateMatrixWorld(true)
 
+			console.log(this.model)
+
 			this.model.traverse((child) => {
 
 				if (child.isMesh) {
+
+					// const vector = new THREE.Vector3();
+					// const box = new THREE.Box3().makeEmpty();
+					// const position = child.geometry.attributes.position;
+
+					// for (let i = 0; i < position.count; i++) {
+					// 	vector.fromBufferAttribute(position, i);
+					// 	child.applyBoneTransform(i, vector);
+					// 	child.localToWorld(vector);
+					// 	box.expandByPoint(vector);
+					// }
+
+					// const helper = new THREE.Box3Helper(box, 0xffff00);
+					// this.params.scene.add(helper);
 
 					child.material.envMap = this.params.environment;
 					child.material.envMapIntensity = 6;
@@ -631,8 +652,8 @@ export class BasicCharacterController {
 						child.material.alphaMap = this.params.alpha;
 
 					}
-				}
 
+				}
 
 			})
 
@@ -646,11 +667,13 @@ export class BasicCharacterController {
 
 			/** для boundingBox */
 
-			this.plaerBox.setFromObject(this.model)
+			this.plaerBox.setFromObject(this.model);
+
+			console.log(this.plaerBox)
 
 			this.shortMovePosition.up.min = this.plaerBox.min
 			this.shortMovePosition.up.max = this.plaerBox.max
-			this.shortMovePosition.up.disable = this.plaerBox.min.y
+			// this.shortMovePosition.up.disable = this.plaerBox.min.y
 
 
 			/** -------------------------------------------------------- */
@@ -658,11 +681,12 @@ export class BasicCharacterController {
 			// console.log(this.plaerBox, "plaerBox");
 			// console.log(this.shortMovePosition, "shortMovePosition");
 
-			// this.boxHelper = new THREE.BoxHelper(this.model, 0xffff00);
-			// this.boxHelper.position.copy(this.model.position)
-			// this.boxHelper.scale.copy(this.model.scale)
+			this.boxHelper = new THREE.BoxHelper(this.model, 0xffff00);
+			this.boxHelper.position.copy(this.model.position)
+			this.boxHelper.scale.copy(this.model.scale)
+			this.params.scene.add(this.boxHelper)
 
-			// this.model.add(this.boxHelper)
+			/** ---------------------------------------------------------- */
 
 			this.mixer = new AnimationMixer(this.model);
 
@@ -670,10 +694,10 @@ export class BasicCharacterController {
 
 			this.params.mixers.push(this.mixer);
 
-			// console.log(this.boxHelper.scale, 'helper')
-			// console.log(this.plaerBox, 'Box3')
 
 		});
+
+
 		// this.params.preloader.onLoad = () => {
 		// 	this.stateMachine.SetState('slow-run');
 		// };
@@ -863,43 +887,31 @@ export class BasicCharacterController {
 			// console.log(this.shortMovePosition.up.min, 'custom')
 			// console.log(this.plaerBox.min.y, 'player')
 
-			gsap.timeline().to(this.shortMovePosition.up.min, {
-				duration: 0.5,
-				y: this.shortMovePosition.up.active,
-				ease: 'Expo.easeOut',
-
-				onStart: () => {
-
-				},
+			gsap.timeline({
+				duration: ,
+				ease: 'power4.out',
+				onComplete: () => { this.input.keys.space = false },
 				onUpdate: () => {
-
-					this.plaerBox.set(this.shortMovePosition.up.min, this.shortMovePosition.up.max)
-				},
-
-				onComplete: () => {
-
-				},
-
+					this.plaerBox.set(new Vector3(this.shortMovePosition.up.min.x, this.shortMovePosition.up.min.y, this.shortMovePosition.up.min.z), this.shortMovePosition.up.max)
+					// console.log(this.plaerBox.min.y)
+				}
 
 			})
-				.to(this.shortMovePosition.up.min, {
-					duration: 0.5,
-					y: this.shortMovePosition.up.disable,
-					ease: 'Sine.easeOut',
-					onStart: () => {
-
+				.fromTo(this.shortMovePosition.up.min,
+					{
+						y: this.shortMovePosition.up.disable
 					},
-					onUpdate: () => {
 
-						this.plaerBox.set(this.shortMovePosition.up.min, this.shortMovePosition.up.max)
-					},
-					onComplete: () => {
+					{
+						y: this.shortMovePosition.up.active,
 
-						this.input.keys.space = false
-					}
+					})
+				.to(this.shortMovePosition.up.min,
+					{
+						y: this.shortMovePosition.up.disable,
 
-				}, '>');
-
+					}, ">"
+				)
 
 			return
 		}
@@ -924,84 +936,15 @@ export class BasicCharacterController {
 
 	/** Fore future */
 
-	generateBoundingBox(currentMesh) {
+	updateScinedBox() {
 
-		currentMesh.geometry.computeBoundingBox();
-		this.plaerBox.setFromObject(currentMesh, true);
-		const min = this.plaerBox.min.clone();
-		const max = this.plaerBox.max.clone();
-		const boundingBoxLengths = new Vector3(
-			Math.abs(min.x - max.x),
-			Math.abs(min.y - max.y),
-			Math.abs(min.z - max.z)
-		);
-		let p0 = min;
-		let p1 = new Vector3(min.x + boundingBoxLengths.x, min.y, min.z);
-		let p2 = new Vector3(min.x, min.y + boundingBoxLengths.y, min.z);
-		let p3 = new Vector3(
-			min.x + boundingBoxLengths.x,
-			min.y + boundingBoxLengths.y,
-			min.z
-		);
-		let p4 = new Vector3(min.x, min.y, min.z + boundingBoxLengths.z);
-		let p5 = new Vector3(
-			min.x + boundingBoxLengths.x,
-			min.y,
-			min.z + boundingBoxLengths.z
-		);
-		let p6 = new Vector3(
-			min.x,
-			min.y + boundingBoxLengths.y,
-			min.z + boundingBoxLengths.z
-		);
-		let p7 = max;
+		this.model.traverse((child) => {
+			if (child.isMesh) {
+				child.computeBoundingBox()
+			}
+		})
 
-		let lineMaterial = new THREE.MeshBasicMaterial({ side: DoubleSide });
-
-		// Front Face
-
-		let L0 = this.generateLinearLine(p0, p1, lineMaterial);
-		let L1 = this.generateLinearLine(p0, p2, lineMaterial);
-		let L2 = this.generateLinearLine(p2, p3, lineMaterial);
-		let L3 = this.generateLinearLine(p1, p3, lineMaterial);
-
-		// Connection between faces
-
-		let L4 = this.generateLinearLine(p0, p4, lineMaterial);
-		let L5 = this.generateLinearLine(p1, p5, lineMaterial);
-		let L6 = this.generateLinearLine(p2, p6, lineMaterial);
-		let L7 = this.generateLinearLine(p3, p7, lineMaterial);
-
-		// Back face
-
-		let L8 = this.generateLinearLine(p4, p5, lineMaterial);
-		let L9 = this.generateLinearLine(p4, p6, lineMaterial);
-		let L10 = this.generateLinearLine(p6, p7, lineMaterial);
-		let L11 = this.generateLinearLine(p5, p7, lineMaterial);
-
-		// Diagonal line
-
-		let L12 = this.generateLinearLine(min, max, lineMaterial);
-
-		let lineGroup = new Group();
-
-		lineGroup.add(L0, L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12);
-
-		return lineGroup;
-	};
-
-	generateLinearLine = (
-		p1,
-		p2,
-		material
-	) => {
-		const points =
-			points.push(p1);
-		points.push(p1);
-		points.push(p2);
-		const geometry = new BufferGeometry().setFromPoints(points);
-		return new Line(geometry, material);
-	};
+	}
 
 }
 

@@ -2,8 +2,12 @@ import * as THREE from "three"
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 class WorldObject {
-	constructor(params, side, character) {
+
+	constructor(params, side, character, enemi) {
+
 		this.params = params
+		this.enemi = enemi
+
 		this.position = new THREE.Vector3(0, 0, 0);
 		this.quaternion = new THREE.Quaternion();
 		this.collider = new THREE.Box3();
@@ -16,17 +20,24 @@ class WorldObject {
 
 		this.character = character
 
-		this.loadModel(this.params)
+		console.log(this.enemi
+			, 'in WorldObject')
+
+		this.loadModel(this.params, this.enemi)
+
+
 	}
 
-	loadModel(params) {
+	loadModel(params, enemi) {
 
 		this.params = params
+		this.enemi = enemi
 		this._manager = new THREE.LoadingManager();
 
-		new GLTFLoader(this._manager).load(this.params.enemies[this.side], (gltf) => {
+		new GLTFLoader(this._manager).load(this.enemi, (gltf) => {
 
 			this.model = gltf.scene;
+
 			this.model.animations = gltf.animations;
 
 			this.model.updateMatrixWorld(true)
@@ -64,15 +75,14 @@ class WorldObject {
 
 		});
 
-		this._manager.onLoad = () => {
-
-		}
-
-
 	}
 
 	SetupAnimations() {
-		if (this.model) {
+
+		if (!this.model) return
+
+		if (this.model.animations) {
+
 			this.model.animations.forEach((clip) => {
 				if (clip.name === "open") {
 					const action = this.mixer.clipAction(clip);
@@ -81,8 +91,9 @@ class WorldObject {
 					this.action = action
 				}
 			});
-
 		}
+
+		return
 	}
 
 	Intersects(otherObject) {
@@ -110,7 +121,12 @@ class WorldObject {
 		}
 
 		this.model.position.copy(this.position);
-		this.skinnedMesh.computeBoundingBox()
+
+		if (this.skinnedMesh) {
+
+			this.skinnedMesh.computeBoundingBox()
+		}
+
 		this.collider.setFromObject(this.model)
 
 	}
@@ -133,6 +149,7 @@ class WorldObject {
 }
 
 export class WorldManager {
+
 	constructor(params) {
 
 		this.params = params
@@ -142,8 +159,11 @@ export class WorldManager {
 
 		params.player ? this.character = params.player : ''
 
-		/** Стена */
+		/** Окружение */
 		this.ground = params.ground
+
+		/** Противники */
+		this.enemies = this.params.enemies
 
 		/** Скорость игры */
 		this.speed = params.speed
@@ -153,10 +173,10 @@ export class WorldManager {
 		this.onStart = true;
 		this.score = 0
 
-		this.enemy = 30
-		this.sidePosition = [-1.42, 1.42]
+		this.enemy = 5
+		// this.sidePosition = [-1.42, 1.42]
 		this.startPosition = 23
-		this.seporateDistanse = 5
+		this.seporateDistanse = 20
 
 		this.interseck = false
 
@@ -173,12 +193,15 @@ export class WorldManager {
 		let obj = null
 
 		let side = this.getRandom(0, 1)
+		let enemi = this.getRandom(0, this.enemies.length - 1)
 
-		obj = new WorldObject(this.params, side, this.character)
+		// console.log(enemi, 'SpawnObj')
+
+		obj = new WorldObject(this.params, side, this.character, this.enemies[enemi])
 
 		obj.openIndex = this.getRandom(1, 10)
 
-		obj.position.x = this.sidePosition[side];
+		// obj.position.x = this.sidePosition[side];
 
 		obj.position.z = sPos
 
@@ -188,11 +211,14 @@ export class WorldManager {
 	}
 
 	CreateEnemy(delta) {
+
 		if (this.onStart) {
+
 			for (let i = 0; i < this.enemy; i++) {
 
 				this.SpawnObj(this.startPosition + i * this.seporateDistanse, i)
 			}
+
 			this.onStart = false
 
 		}
@@ -217,6 +243,7 @@ export class WorldManager {
 				item.position.z -= this.speed
 			}
 
+			/** Если есть анимация */
 
 			if (item.position.z < 5 && item.position.z > 4 && item.action != null && item.openIndex > 3) {
 
@@ -226,6 +253,8 @@ export class WorldManager {
 				item.action.clampWhenFinished = true;
 				item.action.enabled = true;
 				item.action.play();
+
+				return
 			}
 
 			if (item.position.z < -3) {
@@ -235,13 +264,17 @@ export class WorldManager {
 				let index
 				key === 0 ? index = this._objects.length - 1 : index = key - 1
 
-				item.action.reset();
-				item.action.clampWhenFinished = true;
-				item.action.enabled = false;
+				if (item.action) {
+
+					item.action.reset();
+					item.action.clampWhenFinished = true;
+					item.action.enabled = false;
+				}
 
 				let newPositionZ = this._objects[index].position.z + this.seporateDistanse + this.getRandom(-1, 2)
 				item.position.z = newPositionZ
 
+				return
 
 				// console.log(item.position.z)
 				// item.Remove()
@@ -249,7 +282,7 @@ export class WorldManager {
 			}
 
 
-			// this.CheckIntersec(item)
+			this.CheckIntersec(item)
 
 			item.Update(delta)
 		})
@@ -274,10 +307,12 @@ export class WorldManager {
 
 			this.interseck = true
 
-			colider.action.paused = false;
-			colider.action.timeScale = -1;
-			colider.action.setLoop(THREE.LoopOnce);
-			colider.action.play();
+			if (colider.action) {
+				colider.action.paused = false;
+				colider.action.timeScale = -1;
+				colider.action.setLoop(THREE.LoopOnce);
+				colider.action.play();
+			}
 
 			colider.position.z += 0.1
 			colider.GetCharacterAnimation()
