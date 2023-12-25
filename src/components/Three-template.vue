@@ -204,6 +204,8 @@ export default {
                     gsap.to(this.$refs.preloader, {
                         opacity: 0,
                         onComplete: () => {
+                            console.log("Комплит");
+
                             this.$refs.preloader
                                 ? this.$refs.preloader.classList.remove(
                                       "active"
@@ -215,8 +217,9 @@ export default {
                     });
                 },
                 (itemUrl, itemsLoaded, itemsTotal) => {
-                    let loadProc = itemsLoaded / itemsTotal;
-                    this.loadPercetn = Math.floor(loadProc * 100);
+                    // let loadProc = itemsLoaded / itemsTotal;
+                    // this.loadPercetn = Math.floor(loadProc * 100);
+                    // console.log(this.loadPercetn);
                 }
             );
         },

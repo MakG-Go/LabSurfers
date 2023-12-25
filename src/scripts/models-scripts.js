@@ -21,7 +21,7 @@ class BasicCharacterControllerInput {
 	}
 
 	Init() {
-		console.log('init')
+
 		this.mobileKeys = {
 			left: false,
 			right: false
@@ -63,15 +63,16 @@ class BasicCharacterControllerInput {
 			// 	break;
 			case 32: // SPACE
 
-				// console.log(event.keyCode, "keyCode")
-				// console.log(this.pressing_button !== event.keyCode)
-				if (this.pressing_button !== event.keyCode) {
+				console.log(event.keyCode, "keyCode")
+
+				if (this.pressing_button != event.keyCode) {
 
 					this.keys.space = true;
 
 				}
+
 				this.pressing_button = event.keyCode
-				// console.log(this.pressing_button, 'pressing_button')
+				console.log(this.pressing_button, 'pressing_button')
 				break;
 
 			case 16: // SHIFT
@@ -576,15 +577,14 @@ class DrunkState extends State {
 export class BasicCharacterController {
 	constructor(params) {
 		this.Init(params);
-		this.plaerBox = new THREE.Box3().makeEmpty()
+		this.plaerBox = new THREE.Box3().makeEmpty();
+		this.intersecktionBox = new THREE.Box3().makeEmpty();
 
 		this.shortMovePosition = {
 			left: 1.2,
 			center: 0,
 			right: -1.2,
 			up: {
-				min: new THREE.Vector3(),
-				max: new THREE.Vector3(),
 				active: 3,
 				disable: 2.08
 
@@ -611,96 +611,122 @@ export class BasicCharacterController {
 	}
 
 	LoadModels(params) {
+
 		this.params = params
-		this._manager = new THREE.LoadingManager();
 
-		new GLTFLoader(this.params.preloader).load(this.params.model, (gltf) => {
+		new GLTFLoader(this.params.preloader).load(this.params.model,
+			(gltf) => {
 
-			this.model = gltf.scene;
-			this.model.updateMatrixWorld(true)
+				this.model = gltf.scene;
+				this.model.updateMatrixWorld(true)
 
-			console.log(this.model)
+				console.log(this.model)
 
-			this.model.traverse((child) => {
+				this.model.traverse((child) => {
 
-				if (child.isMesh) {
+					if (child.isMesh) {
 
-					// const vector = new THREE.Vector3();
-					// const box = new THREE.Box3().makeEmpty();
-					// const position = child.geometry.attributes.position;
+						// const vector = new THREE.Vector3();
+						// const box = new THREE.Box3().makeEmpty();
+						// const position = child.geometry.attributes.position;
 
-					// for (let i = 0; i < position.count; i++) {
-					// 	vector.fromBufferAttribute(position, i);
-					// 	child.applyBoneTransform(i, vector);
-					// 	child.localToWorld(vector);
-					// 	box.expandByPoint(vector);
-					// }
+						// for (let i = 0; i < position.count; i++) {
+						// 	vector.fromBufferAttribute(position, i);
+						// 	child.applyBoneTransform(i, vector);
+						// 	child.localToWorld(vector);
+						// 	box.expandByPoint(vector);
+						// }
 
-					// const helper = new THREE.Box3Helper(box, 0xffff00);
-					// this.params.scene.add(helper);
+						// const helper = new THREE.Box3Helper(box, 0xffff00);
+						// this.params.scene.add(helper);
 
-					child.material.envMap = this.params.environment;
-					child.material.envMapIntensity = 6;
+						child.material.envMap = this.params.environment;
+						child.material.envMapIntensity = 6;
 
-					child.castShadow = true
-					child.frustumCulled = false;
-					child.material.needsUpdate = true;
+						child.castShadow = true
+						child.frustumCulled = false;
+						child.material.needsUpdate = true;
 
-					if (child.name === "alpha") {
-						child.material.transparent = true;
-						this.params.alpha.flipY = false;
-						child.material.alphaMap = this.params.alpha;
+						if (child.name === "alpha") {
+							child.material.transparent = true;
+							this.params.alpha.flipY = false;
+							child.material.alphaMap = this.params.alpha;
+
+						}
 
 					}
+				})
 
-				}
+				this.model.children.forEach(child => {
+					if (child.isObject3D) {
+						this.truePos = child.position // Позиция меша
+					}
+				})
 
-			})
+				/** Добавляем анимации в хранилище и модель к сцене */
+				this.model.animations = gltf.animations;
+				this.params.scene.add(this.model);
 
-			/** Добавляем анимации в хранилище и модель к сцене */
-			this.model.animations = gltf.animations;
-			this.params.scene.add(this.model);
+				/** Устанавливаем размер и позицию модели */
+				this.params.scale ? this.model.scale.set(...this.params.scale) : '';
+				this.params.pos ? this.model.position.set(...this.params.pos) : '';
 
-			/** Устанавливаем размер и позицию модели */
-			this.params.scale ? this.model.scale.set(...this.params.scale) : '';
-			this.params.pos ? this.model.position.set(...this.params.pos) : '';
+				/** для boundingBox */
 
-			/** для boundingBox */
-
-			this.plaerBox.setFromObject(this.model);
-
-			console.log(this.plaerBox)
-
-			this.shortMovePosition.up.min = this.plaerBox.min
-			this.shortMovePosition.up.max = this.plaerBox.max
-			// this.shortMovePosition.up.disable = this.plaerBox.min.y
+				this.plaerBox.setFromObject(this.model);
 
 
-			/** -------------------------------------------------------- */
-
-			// console.log(this.plaerBox, "plaerBox");
-			// console.log(this.shortMovePosition, "shortMovePosition");
-
-			this.boxHelper = new THREE.BoxHelper(this.model, 0xffff00);
-			this.boxHelper.position.copy(this.model.position)
-			this.boxHelper.scale.copy(this.model.scale)
-			this.params.scene.add(this.boxHelper)
-
-			/** ---------------------------------------------------------- */
-
-			this.mixer = new AnimationMixer(this.model);
-
-			this.SetupAnimations();
-
-			this.params.mixers.push(this.mixer);
+				// this.shortMovePosition.up.disable = this.plaerBox.min.y
 
 
-		});
+				/** -------------------------------------------------------- */
+
+				// console.log(this.plaerBox, "plaerBox");
+				// console.log(this.shortMovePosition, "shortMovePosition");
+
+				// this.boxHelper = new THREE.BoxHelper(this.model, 0xffff00);
+				// this.boxHelper.position.copy(this.model.position)
+				// this.boxHelper.scale.copy(this.model.scale)
+				// this.params.scene.add(this.boxHelper)
+
+				/** ---------------------------------------------------------- */
+
+				this.mixer = new AnimationMixer(this.model);
+
+				this.SetupAnimations();
+
+				this.params.mixers.push(this.mixer);
 
 
-		// this.params.preloader.onLoad = () => {
-		// 	this.stateMachine.SetState('slow-run');
-		// };
+			},
+
+		);
+
+
+		this.params.preloader.onProgress = (itemUrl, itemsLoaded, itemsTotal) => {
+
+			let loadProc = itemsLoaded / itemsTotal;
+			let loadPercetn = Math.floor(loadProc * 100);
+
+			if (loadPercetn === 100) {
+				this.InterseckBox = this.CreateInterseckBox({
+					box: this.plaerBox,
+					position: this.truePos,
+					intersection: this.intersecktionBox
+				})
+
+				this.params.scene.add(this.InterseckBox);
+
+				this.intersecktionBox.setFromObject(this.InterseckBox)
+
+				this.boxHelper = new THREE.BoxHelper(this.InterseckBox, 0xffff00);
+				this.boxHelper.position.copy(this.InterseckBox.position)
+				this.boxHelper.scale.copy(this.InterseckBox.scale)
+				this.params.scene.add(this.boxHelper)
+			}
+
+
+		};
 	}
 
 	SetupAnimations() {
@@ -811,6 +837,8 @@ export class BasicCharacterController {
 
 		if (this.detectedColide) return
 
+		this.intersecktionBox.setFromObject(this.InterseckBox)
+
 		// this.plaerBox.setFromObject(this.model)
 
 		if (this.input.keys.left || this.input.mobileKeys.left) {
@@ -884,34 +912,56 @@ export class BasicCharacterController {
 
 		if (this.input.keys.space) {
 
+
 			// console.log(this.shortMovePosition.up.min, 'custom')
 			// console.log(this.plaerBox.min.y, 'player')
 
-			gsap.timeline({
-				duration: ,
+			// gsap.timeline({
+			// 	duration: 0.5,
+			// 	ease: 'power4.out',
+			// 	onComplete: () => { this.input.keys.space = false },
+			// 	onUpdate: () => {
+			// 		this.plaerBox.set(new Vector3(this.shortMovePosition.up.min.x, this.shortMovePosition.up.min.y, this.shortMovePosition.up.min.z), this.shortMovePosition.up.max)
+			// 		console.log(this.plaerBox.min.y)
+			// 	}
+
+			// })
+			// 	.fromTo(this.shortMovePosition.up.min,
+			// 		{
+			// 			y: this.shortMovePosition.up.disable
+			// 		},
+
+			// 		{
+			// 			y: this.shortMovePosition.up.active,
+
+			// 		})
+			// 	.to(this.shortMovePosition.up.min,
+			// 		{
+			// 			y: this.shortMovePosition.up.disable,
+
+			// 		}, ">"
+			// 	)
+			this.InterseckBox.position.y = this.shortMovePosition.up.disable
+
+			gsap.timeline().to(this.InterseckBox.position, {
+				duration: 0.5,
+				y: this.shortMovePosition.up.active,
+				ease: 'power1.in',
+				onStart: () => {
+					this.input.keys.space = false
+				},
+
+
+			}).to(this.InterseckBox.position, {
+				duration: 0.2,
+				y: this.shortMovePosition.up.disable,
 				ease: 'power4.out',
-				onComplete: () => { this.input.keys.space = false },
-				onUpdate: () => {
-					this.plaerBox.set(new Vector3(this.shortMovePosition.up.min.x, this.shortMovePosition.up.min.y, this.shortMovePosition.up.min.z), this.shortMovePosition.up.max)
-					// console.log(this.plaerBox.min.y)
-				}
 
-			})
-				.fromTo(this.shortMovePosition.up.min,
-					{
-						y: this.shortMovePosition.up.disable
-					},
+				onComplete: () => {
 
-					{
-						y: this.shortMovePosition.up.active,
+				},
 
-					})
-				.to(this.shortMovePosition.up.min,
-					{
-						y: this.shortMovePosition.up.disable,
-
-					}, ">"
-				)
+			}, ">");
 
 			return
 		}
@@ -919,7 +969,8 @@ export class BasicCharacterController {
 	}
 
 	GetPlayer() {
-		return this.plaerBox
+		// return this.plaerBox
+		return this.intersecktionBox
 	}
 
 	GetDrunckAnimation() {
@@ -936,7 +987,51 @@ export class BasicCharacterController {
 
 	/** Fore future */
 
-	updateScinedBox() {
+	CreateInterseckBox(params) {
+
+		let x, y, z
+		let truePos = new Vector3()
+
+		if (params.box.min.x < 0 || params.box.max.x < 0) {
+			x = Math.abs(params.box.max.x) + Math.abs(params.box.min.x)
+		} else {
+			x = Math.abs(params.box.min.x) - Math.abs(params.box.max.x);
+		}
+
+		if (params.box.min.y < 0 || params.box.max.y < 0) {
+			y = Math.abs(params.box.min.y) + Math.abs(params.box.max.y);
+		} else {
+			y = Math.abs(params.box.min.y) - Math.abs(params.box.max.y);
+		}
+
+		if (params.box.min.z < 0 || params.box.max.z < 0) {
+			z = Math.abs(params.box.min.z) + Math.abs(params.box.max.z);
+		} else {
+			z = Math.abs(params.box.min.z) - Math.abs(params.box.max.z);
+		}
+
+		console.log(x, y, z)
+
+		const geometry = new THREE.BoxGeometry(x, y, z);
+		const material = new THREE.MeshStandardMaterial({
+			color: 0x00ff00,
+			wireframe: false
+		});
+		const cube = new THREE.Mesh(geometry, material);
+
+		truePos.x = params.position.x
+		truePos.y = params.position.y + Math.abs(x)
+		truePos.z = params.position.z
+
+		this.shortMovePosition.up.disable = truePos.y
+		this.shortMovePosition.up.active = truePos.y * 1.5
+
+		cube.position.set(...truePos);
+
+		return cube
+	}
+
+	updateScinedBox(box) {
 
 		this.model.traverse((child) => {
 			if (child.isMesh) {
