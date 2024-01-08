@@ -2,25 +2,32 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { AnimationMixer, Vector3 } from "three";
 import * as THREE from "three"
 import { gsap } from 'gsap';
+import { ROOLES } from "@/scripts/rooles.js";
 
 class BasicCharacterControllerProxy {
-	constructor(animations) {
+	constructor(animations, colide) {
 		this._animations = animations;
+		this.colide = colide
 	}
 
 	get animations() {
 		return this._animations;
 	}
 
+	get collide() {
+		return this.colide
+	}
+
 };
 
 class BasicCharacterControllerInput {
-	constructor() {
-		this.Init();
-		this.pressing_button = ''
+	constructor(colide) {
+		this.Init(colide);
+
 	}
 
-	Init() {
+	Init(colide) {
+		this.colide = colide
 
 		this.mobileKeys = {
 			left: false,
@@ -36,71 +43,35 @@ class BasicCharacterControllerInput {
 			shift: false,
 		};
 
-		document.addEventListener('keydown', (e) => this.onKeyDown(e), false);
-		document.addEventListener('keyup', (e) => this.onKeyUp(e), false);
+		document.addEventListener('keydown', (e) => this.onKeyDown(e, this.colide), false);
+		document.addEventListener('keyup', (e) => this.onKeyUp(e, this.colide), false);
 
 		document.addEventListener('touchstart', (e) => this.handleTouchStart(this.getTouches(e)), false);
 		document.addEventListener('touchmove', (e) => this.handleTouchMove(e), false);
-
-		document.removeEventListener('keydown', (e) => this.onKeyDown(e), false);
 	}
 
-	onKeyDown(event) {
+	onKeyDown(event, colide) {
+
+		if (colide) return;
 
 		switch (event.keyCode) {
 
-			// case 87: // w
-			// 	this.keys.forward = true;
-			// 	break;
-			// case 65: // a
-			// 	this.keys.left = true;
-			// 	break;
-			// case 83: // s
-			// 	this.keys.backward = true;
-			// 	break;
-			// case 68: // d
-			// 	this.keys.right = true;
-			// 	break;
 			case 32: // SPACE
-
-				console.log(event.keyCode, "keyCode")
-
-				if (this.pressing_button != event.keyCode) {
-
-					this.keys.space = true;
-
-				}
-
-				this.pressing_button = event.keyCode
-				console.log(this.pressing_button, 'pressing_button')
+				this.keys.space = true;
 				break;
-
 			case 16: // SHIFT
 				this.keys.shift = true;
 				break;
 		}
 	}
 
-	onKeyUp(event) {
+	onKeyUp(event, colide) {
+		if (colide) return;
+
 		switch (event.keyCode) {
-			// case 87: // w
-			// 	this.keys.forward = false;
-			// 	break;
-			// case 65: // a
-			// 	this.keys.left = false;
-			// 	break;
-			// case 83: // s
-			// 	this.keys.backward = false;
-			// 	break;
-			// case 68: // d
-			// 	this.keys.right = false;
-			// 	break;
+
 			case 32: // SPACE
-
-				this.pressing_button = ''
-
 				this.keys.space = false;
-
 				break;
 			case 16: // SHIFT
 				this.keys.shift = false;
@@ -141,6 +112,10 @@ class BasicCharacterControllerInput {
 
 		// this.mobileKeys.left = false
 		// this.mobileKeys.right = false
+	}
+
+	removeKeyDown() {
+		document.removeEventListener('keydown', (e) => this.onKeyDown(e, this.colide), false)
 	}
 
 
@@ -190,18 +165,17 @@ class CharacterFSM extends FiniteStateMachine {
 
 		super();
 		this.proxy = proxy;
+		console.log(this.proxy)
+
 		this.Init();
 	}
 
 	Init() {
 
 		this.AddState('slow-run', RunState);
-		// this.AddState('run-left', RunLeft);
-		// this.AddState('run-right', RunRight);
-
 		this.AddState('jump', JumpState);
-		// this.AddState('walk-back', BackWalkState);
-		// this.AddState('drunk', DrunkState);
+		this.AddState('idle', IdleState);
+
 	}
 };
 
@@ -225,20 +199,22 @@ class RunState extends State {
 	}
 
 	Enter(prevState) {
+
 		const curAction = this.parent.proxy._animations.get('slow-run');
+
 		if (prevState) {
 			const prevAction = this.parent.proxy._animations.get(prevState.Name);
 
 			curAction.enabled = true;
 
-			if (prevState.Name == 'walk' || prevState.Name == 'run-jump') {
+			if (prevState.Name != 'slow-run') {
 				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
 				curAction.time = prevAction.time * ratio;
-			} else {
-				curAction.time = 0.0;
-				curAction.setEffectiveTimeScale(1.0);
-				curAction.setEffectiveWeight(1.0);
 			}
+
+			curAction.time = 0.0;
+			curAction.setEffectiveTimeScale(1.0);
+			curAction.setEffectiveWeight(1.0);
 
 			curAction.crossFadeFrom(prevAction, 0.2, true);
 			curAction.play();
@@ -251,220 +227,67 @@ class RunState extends State {
 	}
 
 	Update(timeElapsed, input) {
-
-		if (input.keys.backward) {
-			this.parent.SetState('walk-back');
-		}
 		if (input.keys.space) {
 			this.parent.SetState('jump');
 		}
-		else if (input.keys.left || input.mobileKeys.left) {
-			this.parent.SetState('run-left');
-		}
-		else if (input.keys.right || input.mobileKeys.right) {
-			this.parent.SetState('run-right');
-		}
 	}
 };
 
-class RunLeft extends State {
+class IdleState extends State {
 	constructor(parent) {
 		super(parent);
 	}
 
 	get Name() {
-		return 'run-left';
+		return 'idle';
 	}
 
 	Enter(prevState) {
-		const curAction = this.parent.proxy._animations.get('run-left');
+
+		const curAction = this.parent.proxy._animations.get('idle');
+
 		if (prevState) {
+
 			const prevAction = this.parent.proxy._animations.get(prevState.Name);
 
 			curAction.enabled = true;
 
-			if (prevState.Name == 'slow-run' || prevState.Name == 'run-jump' || prevState.Name == 'run-left') {
+			if (prevState.Name != 'idle') {
+
 				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
 				curAction.time = prevAction.time * ratio;
 			}
-			else {
-				curAction.time = 0.0;
-				curAction.setEffectiveTimeScale(1.0);
-				curAction.setEffectiveWeight(1.0);
-			}
+
+			curAction.time = 0.0;
+			curAction.setEffectiveTimeScale(1.0);
+			curAction.setEffectiveWeight(1.0);
 
 			curAction.crossFadeFrom(prevAction, 0.2, true);
 			curAction.play();
+
 		} else {
+
 			curAction.play();
+
 		}
 	}
 
 	Exit() {
+
 	}
 
 	Update(timeElapsed, input) {
-		if (input.keys.left || input.mobileKeys.left) {
-			if (input.keys.space) {
-				this.parent.SetState('run-jump');
-			}
-			return;
+		if (input.keys.space) {
+			this.parent.SetState('slow-run');
 		}
 
-		this.parent.SetState('slow-run');
-	}
-};
-
-class RunRight extends State {
-	constructor(parent) {
-		super(parent);
-	}
-
-	get Name() {
-		return 'run-right';
-	}
-
-	Enter(prevState) {
-		const curAction = this.parent.proxy._animations.get('run-right');
-		if (prevState) {
-			const prevAction = this.parent.proxy._animations.get(prevState.Name);
-
-			curAction.enabled = true;
-
-			if (prevState.Name == 'slow-run' || prevState.Name == 'run-jump' || prevState.Name == 'run-right' || prevState.Name == 'run-left') {
-				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
-				curAction.time = prevAction.time * ratio;
-			}
-			else {
-				curAction.time = 0.0;
-				curAction.setEffectiveTimeScale(1.0);
-				curAction.setEffectiveWeight(1.0);
-			}
-
-			curAction.crossFadeFrom(prevAction, 0.2, true);
-			curAction.play();
-		} else {
-			curAction.play();
-		}
-	}
-
-	Exit() {
-	}
-
-	Update(timeElapsed, input) {
-		if (input.keys.right || input.mobileKeys.right) {
-			if (input.keys.space) {
-				this.parent.SetState('run-jump');
-			}
-			return;
-		}
-
-		this.parent.SetState('slow-run');
-	}
-};
-
-class WalkState extends State {
-	constructor(parent) {
-		super(parent);
-	}
-
-	get Name() {
-		return 'walk';
-	}
-
-	Enter(prevState) {
-		const curAction = this.parent.proxy._animations.get('walk');
-		if (prevState) {
-			const prevAction = this.parent.proxy._animations.get(prevState.Name);
-
-			curAction.enabled = true;
-
-			if (prevState.Name == 'slow-run' || prevState.Name == 'run-jump') {
-				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
-				curAction.time = prevAction.time * ratio;
-			}
-			else {
-				curAction.time = 0.0;
-				curAction.setEffectiveTimeScale(1.0);
-				curAction.setEffectiveWeight(1.0);
-			}
-
-			curAction.crossFadeFrom(prevAction, 0.2, true);
-			curAction.play();
-		} else {
-			curAction.play();
-		}
-	}
-
-	Exit() {
-	}
-
-	Update(timeElapsed, input) {
-		if (input.keys.forward) {
-			if (input.keys.shift) {
-				this.parent.SetState('slow-run');
-			}
-			if (input.keys.space) {
-				this.parent.SetState('run-jump');
-			}
-			return;
-		}
-
-		this.parent.SetState('idle');
-	}
-};
-
-class BackWalkState extends State {
-	constructor(parent) {
-		super(parent);
-	}
-
-	get Name() {
-		return 'walk-back';
-	}
-
-	Enter(prevState) {
-		const curAction = this.parent.proxy._animations.get('walk-back');
-		if (prevState) {
-			const prevAction = this.parent.proxy._animations.get(prevState.Name);
-
-			curAction.enabled = true;
-
-			if (prevState.Name == 'slow-run' || prevState.Name == 'run-jump' || prevState.Name == 'walk-back') {
-				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
-				curAction.time = prevAction.time * ratio;
-			}
-			else {
-				curAction.time = 0.0;
-				curAction.setEffectiveTimeScale(1.0);
-				curAction.setEffectiveWeight(1.0);
-			}
-
-			curAction.crossFadeFrom(prevAction, 0.2, true);
-			curAction.play();
-		} else {
-			curAction.play();
-		}
-	}
-
-	Exit() {
-	}
-
-	Update(timeElapsed, input) {
-		if (input.keys.backward) {
-			if (input.keys.space) {
-				this.parent.SetState('run-jump');
-			}
-			return;
-		}
-
-		this.parent.SetState('slow-run');
 	}
 };
 
 class JumpState extends State {
 
 	constructor(parent) {
+
 		super(parent);
 
 		this.FinishedCallback = () => {
@@ -479,11 +302,15 @@ class JumpState extends State {
 	}
 
 	Enter(prevState) {
-		this.prevState = this.getPrevName(prevState.Name)
 
+		this.prevState = this.getPrevName(prevState.Name)
 		const curAction = this.parent.proxy._animations.get('jump');
 		const mixer = curAction.getMixer();
 		mixer.addEventListener('finished', this.FinishedCallback);
+
+		// console.log(this.parent.proxy.colide, 'jump')
+		// if (this.parent.proxy.colide) return
+
 		if (prevState) {
 			const prevAction = this.parent.proxy._animations.get(prevState.Name);
 
@@ -524,59 +351,10 @@ class JumpState extends State {
 
 }
 
-class DrunkState extends State {
-
-	constructor(parent) {
-		super(parent);
-	}
-
-	get Name() {
-		return 'drunk';
-	}
-
-	Enter(prevState) {
-
-		const curAction = this.parent.proxy._animations.get('drunk');
-
-		if (prevState) {
-			const prevAction = this.parent.proxy._animations.get(prevState.Name);
-
-			curAction.enabled = true;
-
-			if (prevState.Name != 'drunk') {
-				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
-				curAction.time = prevAction.time * ratio;
-			}
-			else {
-				curAction.time = 0.0;
-				curAction.setEffectiveTimeScale(1.0);
-				curAction.setEffectiveWeight(1.0);
-			}
-
-			curAction.crossFadeFrom(prevAction, 0.2, true);
-			curAction.play();
-		} else {
-			curAction.play();
-		}
-	}
-
-
-	Exit() {
-
-	}
-
-	Update(timeElapsed, input) {
-		if (input.keys.forward) {
-			this.parent.SetState('slow-run');
-		}
-	}
-
-
-}
-
 export class BasicCharacterController {
+
 	constructor(params) {
-		this.Init(params);
+
 		this.plaerBox = new THREE.Box3().makeEmpty();
 		this.intersecktionBox = new THREE.Box3().makeEmpty();
 
@@ -590,21 +368,32 @@ export class BasicCharacterController {
 
 			}
 		}
+
+		this.intersecCount = ROOLES.life
+
 		this.currPosition = "center"
 		this.interseck = false
 		this.detectedColide = false
+		this.satrtGame = false
+
+		this.Init(params, this.detectedColide);
 	}
 
-	Init(params) {
+	get checkIntersec() {
+		return this.detectedColide
+	}
+
+	Init(params, colide) {
 
 		// this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
 		// this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
 		// this._velocity = new THREE.Vector3(0, 0, 0);
 
 		this.params = params
+		this.colide = colide
 		this.animations = new Map()
-		this.input = new BasicCharacterControllerInput();
-		this.stateMachine = new CharacterFSM(new BasicCharacterControllerProxy(this.animations));
+		this.input = new BasicCharacterControllerInput(this.colide);
+		this.stateMachine = new CharacterFSM(new BasicCharacterControllerProxy(this.animations, this.colide));
 
 		this.LoadModels(this.params);
 
@@ -620,11 +409,11 @@ export class BasicCharacterController {
 				this.model = gltf.scene;
 				this.model.updateMatrixWorld(true)
 
-				console.log(this.model)
-
 				this.model.traverse((child) => {
 
 					if (child.isMesh) {
+
+						child.material.transparent = true;
 
 						// const vector = new THREE.Vector3();
 						// const box = new THREE.Box3().makeEmpty();
@@ -640,19 +429,21 @@ export class BasicCharacterController {
 						// const helper = new THREE.Box3Helper(box, 0xffff00);
 						// this.params.scene.add(helper);
 
+						if (child.name === "alpha") {
+							let alphaTexture = new THREE.TextureLoader().load(this.params.alpha)
+							child.material.side = THREE.DoubleSide
+							alphaTexture.flipY = false;
+							child.material.alphaMap = alphaTexture;
+						}
+
+						child.material.normalScale = new THREE.Vector2(0.9, 0.05)
 						child.material.envMap = this.params.environment;
-						child.material.envMapIntensity = 6;
+						child.material.envMapIntensity = 5;
 
 						child.castShadow = true
 						child.frustumCulled = false;
 						child.material.needsUpdate = true;
 
-						if (child.name === "alpha") {
-							child.material.transparent = true;
-							this.params.alpha.flipY = false;
-							child.material.alphaMap = this.params.alpha;
-
-						}
 
 					}
 				})
@@ -702,47 +493,34 @@ export class BasicCharacterController {
 
 		);
 
-
-		this.params.preloader.onProgress = (itemUrl, itemsLoaded, itemsTotal) => {
-
-			let loadProc = itemsLoaded / itemsTotal;
-			let loadPercetn = Math.floor(loadProc * 100);
-
-			if (loadPercetn === 100) {
-				this.InterseckBox = this.CreateInterseckBox({
-					box: this.plaerBox,
-					position: this.truePos,
-					intersection: this.intersecktionBox
-				})
-
-				this.params.scene.add(this.InterseckBox);
-
-				this.intersecktionBox.setFromObject(this.InterseckBox)
-
-				this.boxHelper = new THREE.BoxHelper(this.InterseckBox, 0xffff00);
-				this.boxHelper.position.copy(this.InterseckBox.position)
-				this.boxHelper.scale.copy(this.InterseckBox.scale)
-				this.params.scene.add(this.boxHelper)
-			}
-
-
-		};
 	}
 
 	SetupAnimations() {
 		if (this.model) {
+
 			this.model.animations.forEach((clip) => {
+
 				const action = this.mixer.clipAction(clip);
 				action.play();
 				action.enabled = false;
 				this.animations.set(clip.name, action);
 			});
 
-			const idleAction = this.animations.get('slow-run');
+
+			const idleAction = this.animations.get('idle');
+
+			// this.stateMachine.SetState('idle')
 			if (idleAction) {
 				idleAction.enabled = true;
 				idleAction.play()
 			}
+
+			// const runAction = this.animations.get('slow-run');
+
+			// if (runAction) {
+			// 	runAction.enabled = true;
+			// 	runAction.play()
+			// }
 		}
 	}
 
@@ -754,12 +532,187 @@ export class BasicCharacterController {
 
 		this.stateMachine.Update(delta, this.input);
 
-		this.shortMovingUpdate(delta)
+		this.shortMovingUpdate(delta);
 
 		if (this.mixer) {
 			this.mixer.update(delta);
 		}
+
+
 	}
+
+	GetPlayer() {
+		// return this.plaerBox
+		return this.intersecktionBox
+	}
+
+	GetIdleAnimation() {
+
+		this.stateMachine.SetState('idle');
+	}
+
+	GetRunAnimation() {
+		this.stateMachine.SetState('slow-run');
+	}
+
+	GetDetectedColide(detected) {
+
+		this.detectedColide = detected
+		this.GetIntersecEvent(detected)
+
+		if (!detected) return
+
+		if (this.intersecCount - 1 >= 0) {
+			this.intersecCount--
+		}
+	}
+
+	GetCurrentLive() {
+
+		return this.intersecCount
+	}
+
+	GetStart() {
+		return this.satrtGame
+	}
+
+	GameOverItersec() {
+
+		if (this.InterseckBox.geometry === null) return
+		this.InterseckBox.position.y = 7;
+		this.intersecktionBox.setFromObject(this.InterseckBox);
+	}
+
+	/** Intersec  */
+
+	CreateInterseckBox(params) {
+
+		let x, y, z
+		let truePos = new Vector3()
+
+		if (params.box.min.x < 0 || params.box.max.x < 0) {
+			x = Math.abs(params.box.max.x) + Math.abs(params.box.min.x)
+		} else {
+			x = Math.abs(params.box.min.x) - Math.abs(params.box.max.x);
+		}
+
+		if (params.box.min.y < 0 || params.box.max.y < 0) {
+			y = Math.abs(params.box.min.y) + Math.abs(params.box.max.y);
+		} else {
+			y = Math.abs(params.box.min.y) - Math.abs(params.box.max.y);
+		}
+
+		if (params.box.min.z < 0 || params.box.max.z < 0) {
+			z = Math.abs(params.box.min.z) + Math.abs(params.box.max.z);
+		} else {
+			z = Math.abs(params.box.min.z) - Math.abs(params.box.max.z);
+		}
+
+		const geometry = new THREE.BoxGeometry(x, y, z);
+		const material = new THREE.MeshStandardMaterial({
+			color: 0x00ff00,
+			wireframe: false,
+			transparent: true,
+			opacity: 0.5,
+			visible: ROOLES.colliderHelper,
+
+		});
+		const cube = new THREE.Mesh(geometry, material);
+
+		truePos.x = params.position.x
+		truePos.y = params.position.y + Math.abs(x)
+		truePos.z = params.position.z
+
+		this.shortMovePosition.up.disable = truePos.y
+		this.shortMovePosition.up.active = truePos.y * 1.5
+
+		cube.position.set(...truePos);
+
+		return cube
+	}
+
+	CreateInterseckBoxColide() {
+
+		console.log('colide')
+
+		this.InterseckBox = this.CreateInterseckBox({
+			box: this.plaerBox,
+			position: this.truePos,
+			intersection: this.intersecktionBox
+		})
+
+		this.params.scene.add(this.InterseckBox);
+
+		this.intersecktionBox.setFromObject(this.InterseckBox)
+	}
+
+	GetIntersecEvent(e) {
+		// console.log(e, 'GetIntersecEvent')
+		if (!this.satrtGame) return
+
+		if (this.InterseckBox.geometry === null) return
+
+		switch (e) {
+
+			case true:
+
+				this.InterseckBox.position.y = 7;
+				this.intersecktionBox.setFromObject(this.InterseckBox);
+				this.model.traverse((child) => {
+
+					if (child.isMesh) {
+						gsap.to(child.material, {
+							duration: 0.1,
+							opacity: 0.3,
+							repeat: -1,
+							yoyo: true
+						})
+					}
+				});
+
+				break;
+
+			case false:
+
+
+				this.InterseckBox.position.y = this.shortMovePosition.up.disable;
+				this.intersecktionBox.setFromObject(this.InterseckBox);
+
+
+				this.model.traverse((child) => {
+					if (child.isMesh) {
+						gsap.killTweensOf(child.material);
+					}
+				})
+
+				this.model.traverse((child) => {
+					if (child.isMesh) {
+						gsap.to(child.material, {
+							duration: 0.1,
+							opacity: 1,
+							repeat: 0,
+							yoyo: false,
+
+						})
+					}
+				});
+
+				break;
+		}
+
+	}
+
+	updateScinedBox(box) {
+
+		this.model.traverse((child) => {
+			if (child.isMesh) {
+				child.computeBoundingBox()
+			}
+		})
+
+	}
+
+	/** Moving */
 
 	movingUpdate(delta) {
 
@@ -837,10 +790,6 @@ export class BasicCharacterController {
 
 		if (this.detectedColide) return
 
-		this.intersecktionBox.setFromObject(this.InterseckBox)
-
-		// this.plaerBox.setFromObject(this.model)
-
 		if (this.input.keys.left || this.input.mobileKeys.left) {
 
 
@@ -912,134 +861,43 @@ export class BasicCharacterController {
 
 		if (this.input.keys.space) {
 
+			gsap.timeline()
 
-			// console.log(this.shortMovePosition.up.min, 'custom')
-			// console.log(this.plaerBox.min.y, 'player')
+				.to(this.InterseckBox.position, {
+					duration: 0,
+					y: this.shortMovePosition.up.disable,
+					onUpdate: () => {
+						this.intersecktionBox.setFromObject(this.InterseckBox)
+					}
 
-			// gsap.timeline({
-			// 	duration: 0.5,
-			// 	ease: 'power4.out',
-			// 	onComplete: () => { this.input.keys.space = false },
-			// 	onUpdate: () => {
-			// 		this.plaerBox.set(new Vector3(this.shortMovePosition.up.min.x, this.shortMovePosition.up.min.y, this.shortMovePosition.up.min.z), this.shortMovePosition.up.max)
-			// 		console.log(this.plaerBox.min.y)
-			// 	}
+				}, ">")
 
-			// })
-			// 	.fromTo(this.shortMovePosition.up.min,
-			// 		{
-			// 			y: this.shortMovePosition.up.disable
-			// 		},
+				.to(this.InterseckBox.position, {
+					duration: 0.4,
+					ease: 'power1.in',
+					y: this.shortMovePosition.up.active,
+					onUpdate: () => {
+						this.intersecktionBox.setFromObject(this.InterseckBox)
+					}
 
-			// 		{
-			// 			y: this.shortMovePosition.up.active,
+				}).to(this.InterseckBox.position, {
+					duration: 0.1,
+					y: this.shortMovePosition.up.disable,
+					onUpdate: () => {
+						this.intersecktionBox.setFromObject(this.InterseckBox)
+					}
 
-			// 		})
-			// 	.to(this.shortMovePosition.up.min,
-			// 		{
-			// 			y: this.shortMovePosition.up.disable,
+				}, ">");
 
-			// 		}, ">"
-			// 	)
-			this.InterseckBox.position.y = this.shortMovePosition.up.disable
+			/** Старт игры  */
 
-			gsap.timeline().to(this.InterseckBox.position, {
-				duration: 0.5,
-				y: this.shortMovePosition.up.active,
-				ease: 'power1.in',
-				onStart: () => {
-					this.input.keys.space = false
-				},
+			!this.satrtGame ? this.satrtGame = true : ''
 
-
-			}).to(this.InterseckBox.position, {
-				duration: 0.2,
-				y: this.shortMovePosition.up.disable,
-				ease: 'power4.out',
-
-				onComplete: () => {
-
-				},
-
-			}, ">");
-
-			return
+			return;
 		}
 
 	}
 
-	GetPlayer() {
-		// return this.plaerBox
-		return this.intersecktionBox
-	}
-
-	GetDrunckAnimation() {
-		this.stateMachine.SetState('drunk');
-	}
-
-	GetRunAnimation() {
-		this.stateMachine.SetState('slow-run');
-	}
-
-	GetDetectedColide(detected) {
-		this.detectedColide = detected
-	}
-
-	/** Fore future */
-
-	CreateInterseckBox(params) {
-
-		let x, y, z
-		let truePos = new Vector3()
-
-		if (params.box.min.x < 0 || params.box.max.x < 0) {
-			x = Math.abs(params.box.max.x) + Math.abs(params.box.min.x)
-		} else {
-			x = Math.abs(params.box.min.x) - Math.abs(params.box.max.x);
-		}
-
-		if (params.box.min.y < 0 || params.box.max.y < 0) {
-			y = Math.abs(params.box.min.y) + Math.abs(params.box.max.y);
-		} else {
-			y = Math.abs(params.box.min.y) - Math.abs(params.box.max.y);
-		}
-
-		if (params.box.min.z < 0 || params.box.max.z < 0) {
-			z = Math.abs(params.box.min.z) + Math.abs(params.box.max.z);
-		} else {
-			z = Math.abs(params.box.min.z) - Math.abs(params.box.max.z);
-		}
-
-		console.log(x, y, z)
-
-		const geometry = new THREE.BoxGeometry(x, y, z);
-		const material = new THREE.MeshStandardMaterial({
-			color: 0x00ff00,
-			wireframe: false
-		});
-		const cube = new THREE.Mesh(geometry, material);
-
-		truePos.x = params.position.x
-		truePos.y = params.position.y + Math.abs(x)
-		truePos.z = params.position.z
-
-		this.shortMovePosition.up.disable = truePos.y
-		this.shortMovePosition.up.active = truePos.y * 1.5
-
-		cube.position.set(...truePos);
-
-		return cube
-	}
-
-	updateScinedBox(box) {
-
-		this.model.traverse((child) => {
-			if (child.isMesh) {
-				child.computeBoundingBox()
-			}
-		})
-
-	}
 
 }
 

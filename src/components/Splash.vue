@@ -13,7 +13,7 @@
                         <p>{{ getTextRight.descripton }}</p>
                     </div>
                 </div>
-                <button class="splash__btn" @click="getStart">ПОНЕСЛАСЬ</button>
+                <button class="splash__btn" @click="getStart">Ok</button>
             </div>
         </div>
     </div>
@@ -30,8 +30,8 @@ export default {
             text: {
                 left: {
                     desctop: {
-                        title: "A",
-                        descripton: "В лево",
+                        title: "Пробел",
+                        descripton: "Уклонение",
                     },
                     mobile: {
                         title: "Свайп в лево",
@@ -40,8 +40,8 @@ export default {
                 },
                 right: {
                     desctop: {
-                        title: "D",
-                        descripton: "В право",
+                        title: "Старт игры",
+                        descripton: "Нажми пробел",
                     },
                     mobile: {
                         title: "Свайп в право",
@@ -53,7 +53,7 @@ export default {
     },
     methods: {
         getStart() {
-            this.$emit("get-start", true);
+            this.$emit("show-start", true);
         },
     },
     // mounted() {

@@ -16,7 +16,21 @@ export default {
                     name: "Орбита",
                     area: "models/ground_light.glb",
                     alpha: "textures/tree_all_alpha.jpg",
-                    enemies: ["models/enemie_1.glb", "models/enemie_2.glb"],
+                    enemies: [
+                        {
+                            model: "models/enemie_1.glb",
+                            alpha: "textures/zabor_alpha.png",
+                        },
+                        // {
+                        //     model: "models/enemie_2.glb",
+                        //     // alpha: "textures/zabor_alpha.png",
+                        // },
+                        // {
+                        //     model: "models/enemie_2.glb",
+                        //     // alpha: "textures/zabor_alpha.png",
+                        // },
+                        // "models/enemie_1.glb", "models/enemie_2.glb"
+                    ],
                 },
             ],
             title: "Выбери локацию",

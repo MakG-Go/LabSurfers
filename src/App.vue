@@ -27,9 +27,9 @@ export default {
 
 <template>
     <div>
-        <!-- <ThreeTemplateVue /> -->
-        <ThreeTemplateVue @new-area="newArea" :get-area="area" v-if="choyse" />
-        <Choyser @get-choyse="getChoyse" v-if="!choyse"></Choyser>
+        <ThreeTemplateVue />
+        <!-- <ThreeTemplateVue @new-area="newArea" :get-area="area" v-if="choyse" /> -->
+        <!-- <Choyser @get-choyse="getChoyse" v-if="!choyse"></Choyser> -->
     </div>
 </template>
 

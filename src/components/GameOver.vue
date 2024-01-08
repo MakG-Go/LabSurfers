@@ -24,9 +24,9 @@ export default {
 
                 <button class="over__restart" @click="restart">ЗАНОВО!</button>
 
-                <button class="over__restart" @click="newArea">
+                <!-- <button class="over__restart" @click="newArea">
                     Выбрать другую локацию
-                </button>
+                </button> -->
             </div>
         </div>
     </div>

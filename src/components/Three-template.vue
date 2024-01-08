@@ -12,9 +12,15 @@ import { WorldManager } from "@/scripts/world.js";
 import { GetDetectMobile } from "@/scripts/mobileDetect.js";
 
 import QuestionsVue from "@/components/Questions.vue";
-import GameOverVue from "@/components//GameOver.vue";
-import Splash from "@/components//Splash.vue";
+import GameOverVue from "@/components/GameOver.vue";
+import Splash from "@/components/Splash.vue";
 import Audio from "./Audio.vue";
+
+import { ROOLES } from "@/scripts/rooles.js";
+import { forest } from "@/scripts/areas.js";
+import { knitted_man } from "@/scripts/character.js";
+import { enemyCount } from "@/scripts/enemies.js";
+import { areaTextureCount } from "@/scripts/areas.js";
 
 export default {
     components: {
@@ -23,16 +29,20 @@ export default {
         Splash,
         Audio,
     },
-    props: {
-        getArea: { type: Object, default: () => {} },
-    },
+    // props: {
+    //     getArea: { type: Object, default: () => {} },
+    // },
 
     data() {
         return {
             mobile: null,
-            fov: { value: 45 },
-            letsStart: false,
+            getArea: forest,
+            fov: { value: 85 },
+            showGame: false,
+            startGame: false,
+
             target: new THREE.Vector3(0, 0, 6.5),
+            cameraPos: [1.2, 3, -1.65],
             color: {
                 fogColor: "#0x000000",
             },
@@ -46,41 +56,66 @@ export default {
                 },
                 doors: ["models/door-3.glb", "models/door-2.glb"],
             },
+
             mixers: [],
             meshes: [],
             gameover: false,
             pause: false,
             checkSpeed: false,
+            gameSpeed: {
+                startSpeed: ROOLES.startSpeed,
+                current: 0,
+                maxSpeed: 0.8,
+            },
 
-            startSpeed: null,
-            gameSpeed: 0.3,
-            maxSpeed: 0.8,
+            // gameSpeed: 0,
+            // maxSpeed: 0.8,
 
+            loadCounter: 0,
             score: 0,
             showQuestion: false,
             // controls: null,
+
+            allContentLoaded: false,
+
+            live: null,
         };
     },
 
     created() {
         this.mobile = GetDetectMobile();
-        console.log(this.getArea);
     },
 
     mounted() {
         this.getFov();
         this.changeSpeed = _.throttle(this.setSpeed, 1);
-        this.startSpeed = this.gameSpeed;
         this.sizes = this.getSizes();
         this.init();
         this.resize();
         this.orientationchange();
-        this.timer();
+        this.getCurrentLive();
+        // this.timer();
     },
 
     watch: {
-        letsStart() {
+        showGame() {
             this.tick();
+        },
+
+        startGame() {
+            switch (this.startGame) {
+                case true:
+                    gsap.to(this.gameSpeed, {
+                        current: this.gameSpeed.startSpeed,
+                        duration: 1.2,
+                        onUpdate: () => {
+                            this.world.GetNewSpeed(this.gameSpeed.current);
+                            this.ground.SetGo(this.gameSpeed.current);
+                        },
+                    });
+
+                    break;
+            }
         },
     },
 
@@ -92,18 +127,7 @@ export default {
     },
 
     methods: {
-        getStart() {
-            this.letsStart = true;
-        },
-
-        getFov() {
-            // window.innerWidth < 719
-            //     ? (this.fov.value = 45)
-            //     : (this.fov.value = 80);
-            this.mobile.mobile != null || this.mobile.tablet != null
-                ? (this.fov.value = 80)
-                : (this.fov.value = 45);
-        },
+        /** Методы сцены */
 
         init() {
             this.createScene();
@@ -114,18 +138,35 @@ export default {
             this.getEnvierment();
 
             this.ground = this.getGround(this.getArea);
-            this.player = this.getModel(this.model.character);
+            this.player = this.getModel(knitted_man);
             this.world = this.getEnemies(
                 this.player,
                 this.ground,
                 this.getArea.enemies
             );
 
-            // this.getGui();
+            this.getGui();
 
             /** Clock */
 
             this.clock = new THREE.Clock();
+        },
+
+        showStart() {
+            this.showGame = true;
+        },
+
+        getStartGame() {
+            this.startGame = true;
+        },
+
+        getFov() {
+            // window.innerWidth < 719
+            //     ? (this.fov.value = 45)
+            //     : (this.fov.value = 80);
+            this.mobile.mobile != null || this.mobile.tablet != null
+                ? (this.fov.value = 80)
+                : (this.fov.value = 85);
         },
 
         createScene() {
@@ -141,9 +182,10 @@ export default {
                 50
             );
 
-            this.camera.position.x = 0;
-            this.camera.position.y = 3.45;
-            this.camera.position.z = -4.5;
+            // this.camera.position.x = 0;
+            // this.camera.position.y = 3.45;
+            // this.camera.position.z = -4.5;
+            this.camera.position.set(...this.cameraPos);
             this.camera.lookAt(this.target);
 
             /**
@@ -198,140 +240,6 @@ export default {
             // this.scene.add(this.pointLightHelper);
         },
 
-        getLoadStatus() {
-            return new THREE.LoadingManager(
-                () => {
-                    gsap.to(this.$refs.preloader, {
-                        opacity: 0,
-                        onComplete: () => {
-                            console.log("Комплит");
-
-                            this.$refs.preloader
-                                ? this.$refs.preloader.classList.remove(
-                                      "active"
-                                  )
-                                : "";
-
-                            this.player.GetRunAnimation();
-                        },
-                    });
-                },
-                (itemUrl, itemsLoaded, itemsTotal) => {
-                    // let loadProc = itemsLoaded / itemsTotal;
-                    // this.loadPercetn = Math.floor(loadProc * 100);
-                    // console.log(this.loadPercetn);
-                }
-            );
-        },
-
-        getModel({ url, position, scale, alpha }) {
-            const newModel = new BasicCharacterController({
-                model: url,
-                scale: new THREE.Vector3(scale.x, scale.y, scale.z),
-                alpha: alpha,
-                pos: new THREE.Vector3(position.x, position.y, position.z),
-                scene: this.scene,
-                meshStore: this.meshes,
-                mixers: this.mixers,
-                preloader: this.getLoadStatus(),
-                environment: this.environmentMap,
-            });
-
-            this.meshes.push(newModel);
-            return newModel;
-        },
-
-        getGround(area) {
-            const ground = new Ground({
-                model: area.area,
-                alpha: area.alpha,
-                scene: this.scene,
-                meshStore: this.meshes,
-                speed: this.gameSpeed,
-                environment: this.environmentMap,
-            });
-            this.meshes.push(ground);
-            return ground;
-        },
-
-        getEnemies(player, ground, enemies) {
-            const newWorld = new WorldManager({
-                scene: this.scene,
-                enemies: enemies,
-                player: player,
-                ground: ground,
-                speed: this.gameSpeed,
-                environment: this.environmentMap,
-            });
-            return newWorld;
-        },
-
-        getEnvierment() {
-            let path = "environment/";
-            this.cubeTextureLoader = new THREE.CubeTextureLoader();
-            this.environmentMap = this.cubeTextureLoader.load([
-                path + "px.jpg",
-                path + "nx.jpg",
-                path + "py.jpg",
-                path + "ny.jpg",
-                path + "pz.jpg",
-                path + "nz.jpg",
-            ]);
-
-            this.environmentMap.minFilter = THREE.NearestFilter;
-            this.environmentMap.magFilter = THREE.NearestFilter;
-            this.environmentMap.generateMipmaps = false;
-
-            this.environmentMap.colorSpace = THREE.SRGBColorSpace;
-        },
-
-        restart() {
-            this.$refs.preloader.classList.add("active");
-            gsap.to(this.$refs.preloader, {
-                opacity: 1,
-                duration: 0.2,
-            });
-
-            window.removeEventListener("resize", this.resize);
-
-            this.scene.traverse((child) => {
-                if (child.isMesh) {
-                    child.geometry.dispose();
-                    child.geometry = null;
-                    if (child.material.map) {
-                        child.material.map.dispose();
-                        child.material.map = null;
-                    }
-                    child.material.dispose();
-                    child.material = null;
-
-                    child.userData.parentName = NaN;
-                    child.userData.key = NaN;
-                    child.userData.originalColor = NaN;
-                    if (child instanceof THREE.Texture) {
-                        child.dispose();
-                        child = null;
-                    }
-                }
-            });
-
-            this.meshes = [];
-
-            this.renderer.forceContextLoss();
-            this.renderer.renderLists.dispose();
-            this.renderer.dispose();
-            this.canvas.removeChild(this.renderer.domElement);
-
-            this.renderer = null;
-            this.camera = null;
-            this.scene = null;
-
-            this.gameover = false;
-            this.gameSpeed = 0.3;
-
-            this.init();
-        },
-
         getSize() {
             // Update sizes
             let w, h;
@@ -382,8 +290,229 @@ export default {
             };
         },
 
+        /** Методы игрового движка */
+
+        getLoadStatus() {
+            return new THREE.LoadingManager(
+                () => {
+                    this.loadCounter++;
+
+                    //  enemyCount.eCount == ROOLES.enemy
+                    // console.log(enemyCount.eCount, "enemyCount");
+                    // console.log(areaTextureCount.tCount, "areaTextureCount");
+
+                    if (this.loadCounter == 2) {
+                        gsap.to(this.$refs.preloader, {
+                            opacity: 0,
+                            onComplete: () => {
+                                this.$refs.preloader
+                                    ? this.$refs.preloader.classList.remove(
+                                          "active"
+                                      )
+                                    : "";
+                                this.player.GetIdleAnimation();
+                                this.player.CreateInterseckBoxColide();
+                            },
+                        });
+                    }
+                }
+                // (itemUrl, itemsLoaded, itemsTotal) => {
+                //     let loadProc = itemsLoaded / itemsTotal;
+                //     this.loadPercetn = Math.floor(loadProc * 100);
+                // }
+            );
+        },
+
+        hidePreloader() {
+            while (enemyCount.eCount < 1) {
+                console.log("555");
+            }
+        },
+
+        getModel({ url, position, scale, alpha }) {
+            const newModel = new BasicCharacterController({
+                model: url,
+                scale: new THREE.Vector3(scale.x, scale.y, scale.z),
+                alpha: alpha,
+                pos: new THREE.Vector3(position.x, position.y, position.z),
+
+                scene: this.scene,
+                meshStore: this.meshes,
+                mixers: this.mixers,
+                environment: this.environmentMap,
+                start: this.startGame,
+
+                preloader: this.getLoadStatus(),
+            });
+
+            this.meshes.push(newModel);
+            return newModel;
+        },
+
+        getGround(area) {
+            const ground = new Ground({
+                model: area.area,
+                alpha: area.alpha,
+                diffuse: area.diffuse,
+                scene: this.scene,
+                meshStore: this.meshes,
+                speed: this.gameSpeed.current,
+                environment: this.environmentMap,
+                preloader: this.getLoadStatus(),
+            });
+            this.meshes.push(ground);
+            return ground;
+        },
+
+        getEnemies(player, ground, enemies) {
+            const newWorld = new WorldManager({
+                scene: this.scene,
+                enemies: enemies,
+                player: player,
+                ground: ground,
+                speed: this.gameSpeed.current,
+                environment: this.environmentMap,
+                preloader: this.getLoadStatus(),
+            });
+            return newWorld;
+        },
+
+        getEnvierment() {
+            let path = "environment/";
+            this.cubeTextureLoader = new THREE.CubeTextureLoader();
+            this.environmentMap = this.cubeTextureLoader.load([
+                path + "px.jpg",
+                path + "nx.jpg",
+                path + "py.jpg",
+                path + "ny.jpg",
+                path + "pz.jpg",
+                path + "nz.jpg",
+            ]);
+
+            this.environmentMap.minFilter = THREE.NearestFilter;
+            this.environmentMap.magFilter = THREE.NearestFilter;
+            this.environmentMap.generateMipmaps = false;
+
+            this.environmentMap.colorSpace = THREE.SRGBColorSpace;
+        },
+
+        getScore() {
+            if (this.startGame && !this.gameover) {
+                this.score = Math.round(this.world.GetScore());
+            }
+        },
+
+        setSpeed() {
+            if (!this.startGame) {
+                this.startGame = this.player.satrtGame;
+                return;
+            }
+
+            if (this.score % 500 == 0) {
+                if (this.gameSpeed.current < this.gameSpeed.maxSpeed) {
+                    this.gameSpeed.current += 0.01;
+
+                    this.world.GetNewSpeed(this.gameSpeed.current);
+
+                    this.ground.SetGo(this.gameSpeed.current);
+                }
+            }
+
+            if (this.score % 1000 == 0) {
+                gsap.to(this.scene.fog, {
+                    density: 0.16,
+                });
+            }
+
+            if (this.score % 700 == 0) {
+                gsap.to(this.scene.fog, {
+                    density: 0.04,
+                });
+            }
+        },
+
+        getCurrentLive() {
+            this.live = this.player.GetCurrentLive();
+
+            /** Условие проигрыша  */
+
+            if (this.live === 0) {
+                this.gameover = true;
+                this.world.SetGo(false, 0);
+                this.player.GetIdleAnimation();
+                this.player.GameOverItersec();
+            }
+        },
+
+        getPause() {
+            this.pause = !this.pause;
+            !this.pause ? this.tick() : "";
+            console.log(this.pause);
+        },
+
+        timeOver() {
+            this.gameover = true;
+        },
+
+        restart() {
+            gsap.globalTimeline.clear();
+
+            this.$refs.preloader.classList.add("active");
+            gsap.to(this.$refs.preloader, {
+                opacity: 1,
+                duration: 0.2,
+            });
+
+            window.removeEventListener("resize", this.resize);
+
+            this.scene.traverse((child) => {
+                if (child.isMesh) {
+                    child.geometry.dispose();
+                    child.geometry = null;
+                    if (child.material.map) {
+                        child.material.map.dispose();
+                        child.material.map = null;
+                    }
+                    child.material.dispose();
+                    child.material = null;
+
+                    child.userData.parentName = NaN;
+                    child.userData.key = NaN;
+                    child.userData.originalColor = NaN;
+                    if (child instanceof THREE.Texture) {
+                        child.dispose();
+                        child = null;
+                    }
+                }
+            });
+
+            this.meshes = [];
+
+            this.renderer.forceContextLoss();
+            this.renderer.renderLists.dispose();
+            this.renderer.dispose();
+            this.canvas.removeChild(this.renderer.domElement);
+
+            this.renderer = null;
+            this.camera = null;
+            this.scene = null;
+
+            this.gameover = false;
+            this.startGame = false;
+            this.gameSpeed.current = 0;
+            this.score = 0;
+            this.loadCounter = 0;
+            enemyCount.eCountClear = 0;
+            areaTextureCount.tCountClear = 0;
+
+            this.init();
+        },
+
         destroyScene() {
+            enemyCount.eCountClear = 0;
+
             gsap.killTweensOf(this.targetCamera);
+            gsap.globalTimeline.clear();
             window.removeEventListener("orientationchange", () => {
                 this.getSize();
                 this.getFov();
@@ -444,11 +573,14 @@ export default {
             }
 
             /** Получаем очки */
-            this.score = Math.round(this.world.GetScore());
+            // this.score = Math.round(this.world.GetScore());
+            this.getScore();
 
-            /** Запускаем квиз */
+            /** Проверяем жизни */
 
-            this.showQuestion = this.world.GetIntersec();
+            this.getCurrentLive();
+
+            // this.showQuestion = this.world.GetIntersec();
 
             /** Изменение скорости игры */
             this.changeSpeed();
@@ -457,108 +589,79 @@ export default {
 
             // Controls
             // this.controls.update();
+
             // Render
             this.renderer.render(this.scene, this.camera);
 
             !this.pause ? requestAnimationFrame(this.tick) : "";
         },
 
-        timer(sec) {
-            let takeData = new Date();
-            let seconds = takeData.getSeconds();
-        },
+        // timer(sec) {
+        //     let takeData = new Date();
+        //     let seconds = takeData.getSeconds();
+        // },
 
-        setSpeed() {
-            if (this.score === 0) return;
+        /** Для вопросов */
+        // getCorrect(correct) {
+        //     if (correct) {
+        //         this.world.SetGo(correct, 0);
+        //         this.gameover = true;
+        //     } else {
+        //         this.world.SetGo(correct, this.gameSpeed.current); //Прокидываем текущую скорость
+        //         // this.player.GetRunAnimation();
+        //         this.player.GetDetectedColide(false);
+        //     }
+        // },
 
-            if (this.score % 500 == 0) {
-                if (this.gameSpeed < this.maxSpeed) {
-                    this.gameSpeed = this.gameSpeed + 0.01;
-                    // this.startSpeed = this.gameSpeed;
-                    this.world.GetNewSpeed(this.gameSpeed);
-                    this.ground.SetGo(this.gameSpeed);
-                }
-            }
-            if (this.score % 1000 == 0) {
-                gsap.to(this.scene.fog, {
-                    density: 0.16,
-                });
-            }
-            if (this.score % 700 == 0) {
-                gsap.to(this.scene.fog, {
-                    density: 0.04,
-                });
-            }
-        },
-
-        getPause() {
-            this.pause = !this.pause;
-            !this.pause ? this.tick() : "";
-            console.log(this.pause);
-        },
-
-        timeOver() {
-            this.gameover = true;
-        },
-
-        getCorrect(correct) {
-            if (correct) {
-                this.world.SetGo(correct, 0);
-                this.gameover = true;
-            } else {
-                this.world.SetGo(correct, this.gameSpeed);
-                this.player.GetRunAnimation();
-                this.player.GetDetectedColide(false);
-            }
-        },
+        /** Вспомогательные методы */
 
         getGui() {
             this.gui = new dat.GUI({
                 width: 500,
             });
-            this.gui
-                .add(this.pointLight.position, "x")
-                .min(-1)
-                .max(5)
-                .step(0.001)
-                .name("P_Light X");
-            this.gui
-                .add(this.pointLight.position, "y")
-                .min(-1)
-                .max(10)
-                .step(0.001)
-                .name("P_Light Y");
-            this.gui
-                .add(this.pointLight.position, "z")
-                .min(-10)
-                .max(20)
-                .step(0.001)
-                .name("P_Light Z");
-            this.gui
-                .add(this.pointLight, "intensity")
-                .min(-1)
-                .max(5000)
-                .step(0.001)
-                .name("P_Light intensity");
-            this.gui
-                .add(this.ambientLight, "intensity")
-                .min(0)
-                .max(50)
-                .step(0.001)
-                .name("A_Light intensity");
-            this.gui
-                .add(this.scene.fog, "density")
-                .min(0)
-                .max(100)
-                .step(0.01)
-                .name("fog min");
+            // this.gui
+            //     .add(this.pointLight.position, "x")
+            //     .min(-1)
+            //     .max(5)
+            //     .step(0.001)
+            //     .name("P_Light X");
+            // this.gui
+            //     .add(this.pointLight.position, "y")
+            //     .min(-1)
+            //     .max(10)
+            //     .step(0.001)
+            //     .name("P_Light Y");
+            // this.gui
+            //     .add(this.pointLight.position, "z")
+            //     .min(-10)
+            //     .max(20)
+            //     .step(0.001)
+            //     .name("P_Light Z");
+            // this.gui
+            //     .add(this.pointLight, "intensity")
+            //     .min(-1)
+            //     .max(5000)
+            //     .step(0.001)
+            //     .name("P_Light intensity");
+            // this.gui
+            //     .add(this.ambientLight, "intensity")
+            //     .min(0)
+            //     .max(50)
+            //     .step(0.001)
+            //     .name("A_Light intensity");
+            // this.gui
+            //     .add(this.scene.fog, "density")
+            //     .min(0)
+            //     .max(100)
+            //     .step(0.01)
+            //     .name("fog min");
 
-            this.gui.addColor(this.color, "fogColor").name("Fog color");
+            // this.gui.addColor(this.color, "fogColor").name("Fog color");
 
             this.gui
                 .add(this.fov, "value")
                 .min(0)
-                .max(100)
+                .max(170)
                 .step(1)
                 .name("Camera Fov")
                 .onFinishChange(this.camera.updateProjectionMatrix());
@@ -576,6 +679,14 @@ export default {
                 .max(0)
                 .step(0.01)
                 .name("Camera z");
+
+            this.gui
+                .add(this.camera.position, "x")
+                .min(-10)
+                .max(10)
+                .step(0.01)
+                .name("Camera x");
+
             this.gui
                 .add(this.target, "z")
                 .min(0)
@@ -592,9 +703,9 @@ export default {
                 .onFinishChange(this.camera.updateProjectionMatrix());
         },
 
-        newArea() {
-            this.$emit("new-area");
-        },
+        // newArea() {
+        //     this.$emit("new-area");
+        // },
     },
 };
 </script>
@@ -604,40 +715,37 @@ export default {
         <Audio
             :show-question="showQuestion"
             :pause="pause"
-            :start="letsStart"
+            :start="showGame"
             :volume-params="0.8"
             :music-data="'./music/back.mp3'"
         ></Audio>
 
-        <!-- <div class="preloader active" ref="preloader">
-            <div class="cssload-spin-box"></div>
-        </div> -->
-
-        <div class="preloader" ref="preloader">
+        <div class="preloader active" ref="preloader">
             <div class="cssload-spin-box"></div>
         </div>
 
         <div ref="webGl" class="webGl" tabindex="0"></div>
         <div class="score_container">
-            <p class="score_number">Score: {{ score }}</p>
+            <p class="score_number">Очки: {{ score }}</p>
+
+            <p class="score_number">Жизней: {{ live }}</p>
         </div>
 
         <GameOverVue
             v-if="gameover"
             :total-score="score"
             @get-restart="restart"
-            @new-area="newArea"
         ></GameOverVue>
 
-        <QuestionsVue
+        <!-- <QuestionsVue
             v-if="showQuestion && !gameover"
             :start-question="showQuestion"
             @time-over="timeOver"
             @get-correct="getCorrect"
         >
-        </QuestionsVue>
+        </QuestionsVue> -->
 
-        <Splash @get-start="getStart" v-if="!letsStart"></Splash>
+        <Splash @show-start="showStart" v-if="!showGame"></Splash>
 
         <div class="webGl__btn_container" ref="pauseBtn">
             <button @click="getPause" class="webGl__btn">Pause</button>

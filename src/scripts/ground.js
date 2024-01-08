@@ -1,18 +1,26 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { LoadingManager } from "three";
+import { areaTextureCount } from "@/scripts/areas.js";
+
+import store from "@/store/index.js"
+
 import * as THREE from "three";
+
 
 export class Ground {
 	constructor(params) {
-		this._params = params
+		this.params = params
 		this.speed = params.speed
-		this.loadModel(this._params);
+		this.loadModel(this.params);
+
+		console.log(store)
 	}
 
 	loadModel(params) {
 		this.params = params
-		this._manager = new LoadingManager();
-		new GLTFLoader().load(this.params.model, (gltf) => {
+		this.textureLoader = new THREE.TextureLoader()
+
+
+		new GLTFLoader(this.params.preloader).load(this.params.model, (gltf) => {
 			this.model = gltf.scene;
 
 			this.model.traverse((child) => {
@@ -23,24 +31,25 @@ export class Ground {
 					child.material.envMapIntensity = 4.2;
 					child.material.needsUpdate = true;
 
-					console.log(child)
-
 					child.receiveShadow = true
 					child.castShadow = true
 					child.frustumCulled = false;
 					child.material.needsUpdate = true
 
 
-					// if (child.material.isMeshStandardMaterial) {
-
-					// 	child.material.envMap = null
-					// }
-
-					// console.log(child.name)
 					if (child.name.includes('alpha')) {
-						// console.log(child)
-						let alphaTexture = new THREE.TextureLoader().load(this.params.alpha)
-						let texture = new THREE.TextureLoader().load("textures/tree_all.png")
+
+						let alphaTexture = this.textureLoader.load(this.params.alpha,
+							() => {
+								areaTextureCount.tCount = 1
+							}
+						)
+						let texture = this.textureLoader.load(this.params.diffuse,
+							() => {
+								areaTextureCount.tCount = 1
+							}
+						)
+
 						child.material.transparent = true;
 						alphaTexture.flipY = false;
 						texture.flipY = false;
@@ -58,24 +67,23 @@ export class Ground {
 				}
 			})
 
-			this._params.scene.add(this.model);
 
+
+			this.params.scene.add(this.model);
 			this.model.position.set(
 				0, 0, 0
 			);
 
 
+
+
 		});
 
-		this._manager.onLoad = () => {
-			console.log('ground is loaded ')
-		}
 
 	}
 
 	Update(delta) {
 		if (!this.model) return
-
 
 		if (this.model.position.z > -72) {
 			this.model.position.z -= this.speed
@@ -87,10 +95,13 @@ export class Ground {
 	}
 
 	getSpeed(stop) {
-		stop ? this.speed = 0 : ""
+
+		// stop ? this.speed = 0 : ""
 	}
 
 	SetGo(speed) {
+
+		// console.log(speed, 'SetGo')
 		this.speed = speed
 	}
 
