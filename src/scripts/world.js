@@ -153,7 +153,7 @@ class WorldObject {
 		if (!ROOLES.stop_with_interseck) {
 			setTimeout(() => {
 				this.character.GetDetectedColide(false)
-			}, 4000)
+			}, 2500)
 		}
 	}
 
