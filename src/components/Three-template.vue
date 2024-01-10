@@ -145,7 +145,7 @@ export default {
                 this.getArea.enemies
             );
 
-            this.getGui();
+            // this.getGui();
 
             /** Clock */
 
