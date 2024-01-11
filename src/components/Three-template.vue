@@ -65,7 +65,7 @@ export default {
             gameSpeed: {
                 startSpeed: ROOLES.startSpeed,
                 current: 0,
-                maxSpeed: 0.8,
+                maxSpeed: ROOLES.maxSpeed,
             },
 
             intersection: false,
@@ -96,6 +96,8 @@ export default {
         this.resize();
         this.orientationchange();
         this.getCurrentLive();
+
+        console.log(this.meshes)
         // this.timer();
     },
 
@@ -141,6 +143,7 @@ export default {
 
             this.ground = this.getGround(this.getArea);
             this.player = this.getModel(knitted_man);
+
             this.world = this.getEnemies(
                 this.player,
                 this.ground,
@@ -310,8 +313,8 @@ export default {
                             onComplete: () => {
                                 this.$refs.preloader
                                     ? this.$refs.preloader.classList.remove(
-                                          "active"
-                                      )
+                                        "active"
+                                    )
                                     : "";
                                 this.player.GetIdleAnimation();
                                 this.player.CreateInterseckBoxColide();
@@ -435,8 +438,17 @@ export default {
                 return;
             }
 
-            this.world.GetNewSpeed(this.gameSpeed.current);
-            this.ground.SetGo(this.gameSpeed.current);
+            if (this.gameSpeed.current < this.gameSpeed.maxSpeed) {
+                this.world.GetNewSpeed(this.gameSpeed.current);
+                this.ground.SetGo(this.gameSpeed.current);
+                return
+            }
+
+            this.world.GetNewSpeed(this.gameSpeed.maxSpeed);
+            this.ground.SetGo(this.gameSpeed.maxSpeed);
+
+
+
         },
 
         checkIntersection(value) {
@@ -576,14 +588,14 @@ export default {
             // this.camera.fov = this.fov.value;
             // this.camera.updateProjectionMatrix();
 
-            this.meshes.length > 0
-                ? this.meshes.forEach((m) => {
-                      m.Update(delta);
-                  })
-                : "";
+            // this.meshes.length > 0
+            //     ? this.meshes.forEach((m) => {
+            //         m.Update(delta);
+            //     })
+            //     : "";
 
             if (this.world) {
-                this.world.Update(delta);
+                this.world.totalUpdate(delta);
             }
 
             /** Получаем пересечение */
@@ -730,19 +742,14 @@ export default {
 
 <template>
     <div>
-        <Audio
-            :show-question="showQuestion"
-            :pause="pause"
-            :start="showGame"
-            :volume-params="0.8"
-            :music-data="'./music/back.mp3'"
-        ></Audio>
+        <Audio :show-question="showQuestion" :pause="pause" :start="showGame" :volume-params="0.8"
+            :music-data="'./music/back.mp3'"></Audio>
 
         <div class="preloader active" ref="preloader">
             <div class="cssload-spin-box"></div>
         </div>
 
-        <div ref="webGl" class="webGl" tabindex="0" ></div>
+        <div ref="webGl" class="webGl" tabindex="0"></div>
 
         <div class="score_container">
             <p class="score_number">Очки: {{ score }}</p>
@@ -750,11 +757,7 @@ export default {
             <p class="score_number">Жизней: {{ live }}</p>
         </div>
 
-        <GameOverVue
-            v-if="gameover"
-            :total-score="score"
-            @get-restart="restart"
-        ></GameOverVue>
+        <GameOverVue v-if="gameover" :total-score="score" @get-restart="restart"></GameOverVue>
 
         <!-- <QuestionsVue
             v-if="showQuestion && !gameover"
@@ -772,5 +775,4 @@ export default {
     </div>
 </template>
 
-<style lang="scss">
-</style>
+<style lang="scss"></style>

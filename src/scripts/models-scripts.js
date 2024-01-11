@@ -3,8 +3,10 @@ import { AnimationMixer, Vector3 } from "three";
 import * as THREE from "three"
 import { gsap } from 'gsap';
 import { ROOLES } from "@/scripts/rooles.js";
+import _ from "lodash";
 
 class BasicCharacterControllerProxy {
+
 	constructor(animations, colide) {
 		this._animations = animations;
 		this.colide = colide
@@ -21,9 +23,10 @@ class BasicCharacterControllerProxy {
 };
 
 class BasicCharacterControllerInput {
-	constructor(colide) {
-		this.Init(colide);
 
+	constructor(colide) {
+
+		this.Init(colide);
 	}
 
 	Init(colide) {
@@ -52,12 +55,16 @@ class BasicCharacterControllerInput {
 
 	onKeyDown(event, colide) {
 
+
 		if (colide) return;
+
 
 		switch (event.keyCode) {
 
 			case 32: // SPACE
-				this.keys.space = true;
+
+				console.log('auf')
+				!this.keys.space ? this.keys.space = true : ""
 				break;
 			case 16: // SHIFT
 				this.keys.shift = true;
@@ -378,6 +385,8 @@ export class BasicCharacterController {
 		this.satrtGame = false
 
 		this.Init(params, this.detectedColide);
+
+		// this.updateKeyDown = _.throttle(this.shortMovingUpdate, 1);
 	}
 
 	get checkIntersec() {
@@ -394,6 +403,7 @@ export class BasicCharacterController {
 		this.colide = colide
 		this.animations = new Map()
 		this.input = new BasicCharacterControllerInput(this.colide);
+
 		this.stateMachine = new CharacterFSM(new BasicCharacterControllerProxy(this.animations, this.colide));
 
 		this.LoadModels(this.params);
@@ -444,7 +454,7 @@ export class BasicCharacterController {
 						}
 
 						child.material.normalScale = new THREE.Vector2(0.9, 0.05)
-					
+
 						// child.material.envMapIntensity = 5
 						child.material.envMap = this.params.environment;
 						child.material.envMapIntensity = 4.2;
@@ -588,8 +598,8 @@ export class BasicCharacterController {
 	GameOverItersec() {
 
 		if (this.InterseckBox.geometry === null) return
-		this.InterseckBox.position.y = 7;
-		this.intersecktionBox.setFromObject(this.InterseckBox);
+		// this.InterseckBox.position.y = 7;
+		// this.intersecktionBox.setFromObject(this.InterseckBox);
 	}
 
 	/** Intersec  */
@@ -665,8 +675,8 @@ export class BasicCharacterController {
 
 			case true:
 
-				this.InterseckBox.position.y = 7;
-				this.intersecktionBox.setFromObject(this.InterseckBox);
+				// this.InterseckBox.position.y = 7;
+				// this.intersecktionBox.setFromObject(this.InterseckBox);
 				this.model.traverse((child) => {
 
 
@@ -880,27 +890,22 @@ export class BasicCharacterController {
 			gsap.timeline()
 
 				.to(this.InterseckBox.position, {
-					duration: 0,
-					y: this.shortMovePosition.up.disable,
-					onUpdate: () => {
-						this.intersecktionBox.setFromObject(this.InterseckBox)
-					}
-
-				}, ">")
-
-				.to(this.InterseckBox.position, {
 					duration: 0.4,
-					ease: 'power1.in',
+					ease: 'sine.in',
 					y: this.shortMovePosition.up.active,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
 					}
 
 				}).to(this.InterseckBox.position, {
-					duration: 0.1,
+					duration: 0.2,
+					ease: "sine.out",
 					y: this.shortMovePosition.up.disable,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
+					},
+					onComplete: () => {
+						this.input.keys.space = false
 					}
 
 				}, ">");

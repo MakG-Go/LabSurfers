@@ -276,9 +276,11 @@ export class WorldManager {
 
 	}
 
-	Update(delta) {
+	totalUpdate(delta) {
 
 		this.UpdateColliders(delta)
+		this.character.Update(delta)
+		this.ground.Update(delta)
 	}
 
 	UpdateColliders(delta) {
@@ -314,17 +316,17 @@ export class WorldManager {
 				let index
 				key === 0 ? index = this._objects.length - 1 : index = key - 1
 
-				if (item.action) {
+				// if (item.action) {
 
-					item.action.reset();
-					item.action.clampWhenFinished = true;
-					item.action.enabled = false;
-				}
+				// 	item.action.reset();
+				// 	item.action.clampWhenFinished = true;
+				// 	item.action.enabled = false;
+				// }
 
 				let newPositionZ = this._objects[index].position.z + this.seporateDistanse + this.getRandom(0, ROOLES.enemy_randomSeporateDistanse)
 				item.position.z = newPositionZ
 
-				console.log(newPositionZ)
+				// console.log(newPositionZ)
 
 				return
 
@@ -332,7 +334,7 @@ export class WorldManager {
 
 			this.CheckIntersec(item);
 
-			item.Update(delta);
+			item.Update(delta); 
 		})
 
 		if (!this.interseck && this.startGame || !ROOLES.stop_with_intersec && this.startGame) {
@@ -372,7 +374,7 @@ export class WorldManager {
 
 			this.interseck = as
 
-			console.log(this.interseck, '1')
+			// console.log(this.interseck, '1')
 
 		}
 	}
