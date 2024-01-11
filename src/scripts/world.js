@@ -148,17 +148,9 @@ class WorldObject {
 		this.character.GetDetectedColide(state)
 
 		if (!ROOLES.stop_with_interseck) {
-
-			let promise = await new Promise((resolve) => {
-
-				setTimeout(() => {
-					this.character.GetDetectedColide(false);
-					resolve(false);
-				}, 2500)
-			});
-
-			return promise
-
+			setTimeout(() => {
+				this.character.GetDetectedColide(false)
+			}, 2500)
 		}
 	}
 
