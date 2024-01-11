@@ -577,9 +577,9 @@ export default {
             let delta = this.clock.getDelta();
             this.pause ? this.clock.stop() : this.clock.start();
 
-            this.camera.lookAt(this.target);
-            this.camera.fov = this.fov.value;
-            this.camera.updateProjectionMatrix();
+            // this.camera.lookAt(this.target);
+            // this.camera.fov = this.fov.value;
+            // this.camera.updateProjectionMatrix();
 
             this.meshes.length > 0
                 ? this.meshes.forEach((m) => {
