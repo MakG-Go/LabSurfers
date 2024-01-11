@@ -9,5 +9,5 @@ export const ROOLES = {
     enemy_seporateDistanse: 21, /** дистанция между противниками */
     enemy_randomSeporateDistanse: 15,
     stop_with_interseck: false, /** Останавливать при коллизии */
-    colliderHelper: true
+    colliderHelper: false
 }
