@@ -114,8 +114,9 @@ class BasicCharacterControllerInput {
 		// this.mobileKeys.right = false
 	}
 
-	removeKeyDown() {
+	removeKey() {
 		document.removeEventListener('keydown', (e) => this.onKeyDown(e, this.colide), false)
+		document.removeEventListener('keyup', (e) => this.onKeyUp(e, this.colide), false)
 	}
 
 
@@ -414,6 +415,10 @@ export class BasicCharacterController {
 					if (child.isMesh) {
 
 						child.material.transparent = true;
+						child.userData.originalColor = child.material.color.clone();
+						console.log(child.userData)
+						// child.material.emissive = true
+						// child.material.emissive = new THREE.Color({ r: 0.01, g: 0.01, b: 0.06 })
 
 						// const vector = new THREE.Vector3();
 						// const box = new THREE.Box3().makeEmpty();
@@ -660,7 +665,11 @@ export class BasicCharacterController {
 				this.intersecktionBox.setFromObject(this.InterseckBox);
 				this.model.traverse((child) => {
 
-					if (child.isMesh) {
+
+					if (child.isMesh && child.name != "alpha") {
+
+						child.material.emissive = { r: 0.56, g: 0.56, b: 0.98 }
+						child.material.color = { r: 0, g: 0, b: 0 }
 						gsap.to(child.material, {
 							duration: 0.1,
 							opacity: 0.3,
@@ -686,7 +695,10 @@ export class BasicCharacterController {
 				})
 
 				this.model.traverse((child) => {
-					if (child.isMesh) {
+
+					if (child.isMesh && child.name != "alpha") {
+						child.material.emissive = { r: 0, g: 0, b: 0 }
+						child.material.color = { ...child.userData.originalColor }
 						gsap.to(child.material, {
 							duration: 0.1,
 							opacity: 1,
@@ -873,15 +885,15 @@ export class BasicCharacterController {
 				}, ">")
 
 				.to(this.InterseckBox.position, {
-					duration: 0.4,
-					ease: 'power1.in',
+					duration: 0.5,
+					ease: 'power4.in',
 					y: this.shortMovePosition.up.active,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
 					}
 
 				}).to(this.InterseckBox.position, {
-					duration: 0.1,
+					duration: 0.05,
 					y: this.shortMovePosition.up.disable,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)

@@ -16,7 +16,7 @@ export default {
 
     methods: {
         getPlay() {
-            // this.$refs.gameMusic.play();
+            this.$refs.gameMusic.play();
         },
 
         getVolume() {

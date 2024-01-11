@@ -26,9 +26,6 @@ class WorldObject {
 
 		this.character = character
 
-		// console.log(this.enemi
-		// 	, 'in WorldObject')
-
 		this._manager = new THREE.LoadingManager();
 		this.loadModel(this.params, this.enemi)
 
@@ -145,15 +142,23 @@ class WorldObject {
 		// this.character.GetDrunckAnimation()
 	}
 
-	GetKeybordOff(state) {
+	async GetKeybordOff(state) {
+
 
 		this.character.GetDetectedColide(state)
 
-
 		if (!ROOLES.stop_with_interseck) {
-			setTimeout(() => {
-				this.character.GetDetectedColide(false)
-			}, 4000)
+
+			let promise = await new Promise((resolve) => {
+
+				setTimeout(() => {
+					this.character.GetDetectedColide(false);
+					resolve(false);
+				}, 2500)
+			});
+
+			return promise
+
 		}
 	}
 
@@ -272,7 +277,6 @@ export class WorldManager {
 
 	}
 
-
 	Update(delta) {
 
 		this.UpdateColliders(delta)
@@ -292,21 +296,21 @@ export class WorldManager {
 
 			/** Если есть анимация */
 
-			if (item.position.z < 5 && item.position.z > 4 && item.action != null && item.openIndex > 3) {
+			// if (item.position.z < 5 && item.position.z > 4 && item.action != null && item.openIndex > 3) {
 
-				item.action.reset();
-				item.action.timeScale = 1
-				item.action.setLoop(THREE.LoopOnce, 1);
-				item.action.clampWhenFinished = true;
-				item.action.enabled = true;
-				item.action.play();
+			// 	item.action.reset();
+			// 	item.action.timeScale = 1
+			// 	item.action.setLoop(THREE.LoopOnce, 1);
+			// 	item.action.clampWhenFinished = true;
+			// 	item.action.enabled = true;
+			// 	item.action.play();
 
-				return
-			}
+			// 	return
+			// }
 
 			if (item.position.z < -3) {
 
-				item.openIndex = this.getRandom(1, 10)
+				// item.openIndex = this.getRandom(1, 10)
 
 				let index
 				key === 0 ? index = this._objects.length - 1 : index = key - 1
@@ -320,6 +324,8 @@ export class WorldManager {
 
 				let newPositionZ = this._objects[index].position.z + this.seporateDistanse + this.getRandom(0, ROOLES.enemy_randomSeporateDistanse)
 				item.position.z = newPositionZ
+
+				console.log(newPositionZ)
 
 				return
 
@@ -341,7 +347,7 @@ export class WorldManager {
 
 	}
 
-	CheckIntersec(colider) {
+	async CheckIntersec(colider) {
 		if (!colider) return
 
 		if (this.character.checkIntersec) return
@@ -363,7 +369,11 @@ export class WorldManager {
 			// colider.position.z += 0.1
 			// colider.GetCharacterAnimation()
 
-			colider.GetKeybordOff(true)
+			let as = await colider.GetKeybordOff(true)
+
+			this.interseck = as
+
+			console.log(this.interseck, '1')
 
 		}
 	}

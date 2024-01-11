@@ -68,6 +68,8 @@ export default {
                 maxSpeed: 0.8,
             },
 
+            intersection: false,
+
             // gameSpeed: 0,
             // maxSpeed: 0.8,
 
@@ -145,7 +147,7 @@ export default {
                 this.getArea.enemies
             );
 
-            this.getGui();
+            // this.getGui();
 
             /** Clock */
 
@@ -431,6 +433,23 @@ export default {
             }
         },
 
+        setIntersectedSpeed(value) {
+            if (value) {
+                this.world.GetNewSpeed(ROOLES.collideSpeed);
+                this.ground.SetGo(ROOLES.collideSpeed);
+                return;
+            }
+
+            this.world.GetNewSpeed(this.gameSpeed.current);
+            this.ground.SetGo(this.gameSpeed.current);
+        },
+
+        checkIntersection(value) {
+            this.intersection = value;
+
+            this.setIntersectedSpeed(value);
+        },
+
         getCurrentLive() {
             this.live = this.player.GetCurrentLive();
 
@@ -571,6 +590,10 @@ export default {
             if (this.world) {
                 this.world.Update(delta);
             }
+
+            /** Получаем пересечение */
+
+            this.checkIntersection(this.world.GetIntersec());
 
             /** Получаем очки */
             // this.score = Math.round(this.world.GetScore());
