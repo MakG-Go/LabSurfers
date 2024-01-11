@@ -52,8 +52,8 @@ class WorldObject {
 					child.material.envMapIntensity = 3;
 					child.material.needsUpdate = true;
 
-					child.castShadow = true
-					child.frustumCulled = false;
+					// child.castShadow = true
+					// child.frustumCulled = false;
 
 				}
 

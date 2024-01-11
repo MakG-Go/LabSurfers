@@ -226,12 +226,13 @@ export default {
             this.ambientLight = new THREE.AmbientLight(0x404040, 7);
             this.scene.add(this.ambientLight);
 
-            this.pointLight = new THREE.PointLight(0x404040, 1000, 100);
+            this.pointLight = new THREE.PointLight(0x404040, 1000, 15);
             this.pointLight.position.x = 0;
             this.pointLight.position.y = 8;
             this.pointLight.position.z = -6;
             this.pointLight.shadow.bias = -0.002;
-            this.sphereSize = 1;
+            // this.sphereSize = 1;
+
             this.pointLight.castShadow = true;
             // this.pointLightHelper = new THREE.PointLightHelper(
             //   this.pointLight,
@@ -323,12 +324,6 @@ export default {
                 //     this.loadPercetn = Math.floor(loadProc * 100);
                 // }
             );
-        },
-
-        hidePreloader() {
-            while (enemyCount.eCount < 1) {
-                console.log("555");
-            }
         },
 
         getModel({ url, position, scale, alpha }) {
@@ -747,7 +742,8 @@ export default {
             <div class="cssload-spin-box"></div>
         </div>
 
-        <div ref="webGl" class="webGl" tabindex="0"></div>
+        <div ref="webGl" class="webGl" tabindex="0" ></div>
+
         <div class="score_container">
             <p class="score_number">Очки: {{ score }}</p>
 
@@ -770,7 +766,7 @@ export default {
 
         <Splash @show-start="showStart" v-if="!showGame"></Splash>
 
-        <div class="webGl__btn_container" ref="pauseBtn">
+        <div class="webGl__btn_container" tabindex="0" ref="pauseBtn">
             <button @click="getPause" class="webGl__btn">Pause</button>
         </div>
     </div>

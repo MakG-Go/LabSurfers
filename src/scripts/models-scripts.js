@@ -416,7 +416,7 @@ export class BasicCharacterController {
 
 						child.material.transparent = true;
 						child.userData.originalColor = child.material.color.clone();
-						console.log(child.userData)
+
 						// child.material.emissive = true
 						// child.material.emissive = new THREE.Color({ r: 0.01, g: 0.01, b: 0.06 })
 
@@ -435,6 +435,8 @@ export class BasicCharacterController {
 						// this.params.scene.add(helper);
 
 						if (child.name === "alpha") {
+							console.log(child)
+
 							let alphaTexture = new THREE.TextureLoader().load(this.params.alpha)
 							child.material.side = THREE.DoubleSide
 							alphaTexture.flipY = false;
@@ -442,8 +444,10 @@ export class BasicCharacterController {
 						}
 
 						child.material.normalScale = new THREE.Vector2(0.9, 0.05)
+					
+						// child.material.envMapIntensity = 5
 						child.material.envMap = this.params.environment;
-						child.material.envMapIntensity = 5;
+						child.material.envMapIntensity = 4.2;
 
 						child.castShadow = true
 						child.frustumCulled = false;
@@ -537,11 +541,11 @@ export class BasicCharacterController {
 
 		this.stateMachine.Update(delta, this.input);
 
-		this.shortMovingUpdate(delta);
+		this.shortMovingUpdate();
 
-		if (this.mixer) {
-			this.mixer.update(delta);
-		}
+		// if (this.mixer) {
+		// 	this.mixer.update(delta);
+		// }
 
 
 	}
@@ -885,15 +889,15 @@ export class BasicCharacterController {
 				}, ">")
 
 				.to(this.InterseckBox.position, {
-					duration: 0.5,
-					ease: 'power4.in',
+					duration: 0.4,
+					ease: 'power1.in',
 					y: this.shortMovePosition.up.active,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
 					}
 
 				}).to(this.InterseckBox.position, {
-					duration: 0.05,
+					duration: 0.1,
 					y: this.shortMovePosition.up.disable,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)

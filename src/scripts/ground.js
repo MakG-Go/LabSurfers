@@ -29,12 +29,11 @@ export class Ground {
 
 					child.material.envMap = this.params.environment;
 					child.material.envMapIntensity = 4.2;
-					child.material.needsUpdate = true;
 
 					child.receiveShadow = true
-					child.castShadow = true
+					// child.castShadow = true
 					child.frustumCulled = false;
-					child.material.needsUpdate = true
+					// child.material.needsUpdate = true
 
 
 					if (child.name.includes('alpha')) {
@@ -82,7 +81,7 @@ export class Ground {
 
 	}
 
-	Update(delta) {
+	Update() {
 		if (!this.model) return
 
 		if (this.model.position.z > -72) {
