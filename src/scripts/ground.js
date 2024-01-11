@@ -29,12 +29,16 @@ export class Ground {
 
 					child.material.envMap = this.params.environment;
 					child.material.envMapIntensity = 4.2;
-
 					child.receiveShadow = true
+
 					// child.castShadow = true
 					child.frustumCulled = false;
 					// child.material.needsUpdate = true
 
+					if(child.name.includes('Stratch')){
+						console.log(child)
+						child.castShadow = true
+					}
 
 					if (child.name.includes('alpha')) {
 
