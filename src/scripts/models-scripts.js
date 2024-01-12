@@ -24,13 +24,14 @@ class BasicCharacterControllerProxy {
 
 class BasicCharacterControllerInput {
 
-	constructor(colide) {
+	constructor(event) {
 
-		this.Init(colide);
+		this.Init(event);
 	}
 
-	Init(colide) {
-		this.colide = colide
+	Init(event) {
+		// this.colide = colide
+		this.event = event
 
 		this.mobileKeys = {
 			left: false,
@@ -46,44 +47,20 @@ class BasicCharacterControllerInput {
 			shift: false,
 		};
 
-		document.addEventListener('keydown', (e) => this.onKeyDown(e, this.colide), false);
-		document.addEventListener('keyup', (e) => this.onKeyUp(e, this.colide), false);
+		// this.onKeyDown(this.event)
 
-		document.addEventListener('touchstart', (e) => this.handleTouchStart(this.getTouches(e)), false);
-		document.addEventListener('touchmove', (e) => this.handleTouchMove(e), false);
+		// document.addEventListener('touchstart', (e) => this.handleTouchStart(this.getTouches(e)), false);
+		// document.addEventListener('touchmove', (e) => this.handleTouchMove(e), false);
 	}
 
-	onKeyDown(event, colide) {
+	onKeyDown() {
 
-
-		if (colide) return;
-
-
-		switch (event.keyCode) {
-
-			case 32: // SPACE
-
-				console.log('auf')
-				!this.keys.space ? this.keys.space = true : ""
-				break;
-			case 16: // SHIFT
-				this.keys.shift = true;
-				break;
-		}
+		this.keys.space = true
 	}
 
-	onKeyUp(event, colide) {
-		if (colide) return;
+	onKeyUp() {
 
-		switch (event.keyCode) {
-
-			case 32: // SPACE
-				this.keys.space = false;
-				break;
-			case 16: // SHIFT
-				this.keys.shift = false;
-				break;
-		}
+		this.keys.space = false;
 	}
 
 	getTouches(e) {
@@ -120,12 +97,6 @@ class BasicCharacterControllerInput {
 		// this.mobileKeys.left = false
 		// this.mobileKeys.right = false
 	}
-
-	removeKey() {
-		document.removeEventListener('keydown', (e) => this.onKeyDown(e, this.colide), false)
-		document.removeEventListener('keyup', (e) => this.onKeyUp(e, this.colide), false)
-	}
-
 
 };
 
@@ -378,7 +349,6 @@ export class BasicCharacterController {
 		}
 
 		this.intersecCount = ROOLES.life
-
 		this.currPosition = "center"
 		this.interseck = false
 		this.detectedColide = false
@@ -386,7 +356,6 @@ export class BasicCharacterController {
 
 		this.Init(params, this.detectedColide);
 
-		// this.updateKeyDown = _.throttle(this.shortMovingUpdate, 1);
 	}
 
 	get checkIntersec() {
@@ -401,9 +370,9 @@ export class BasicCharacterController {
 
 		this.params = params
 		this.colide = colide
-		this.animations = new Map()
-		this.input = new BasicCharacterControllerInput(this.colide);
 
+		this.animations = new Map()
+		this.input = new BasicCharacterControllerInput();
 		this.stateMachine = new CharacterFSM(new BasicCharacterControllerProxy(this.animations, this.colide));
 
 		this.LoadModels(this.params);
@@ -507,7 +476,6 @@ export class BasicCharacterController {
 
 				this.params.mixers.push(this.mixer);
 
-
 			},
 
 		);
@@ -523,23 +491,16 @@ export class BasicCharacterController {
 				action.play();
 				action.enabled = false;
 				this.animations.set(clip.name, action);
-			});
 
+			});
 
 			const idleAction = this.animations.get('idle');
 
-			// this.stateMachine.SetState('idle')
 			if (idleAction) {
 				idleAction.enabled = true;
 				idleAction.play()
 			}
 
-			// const runAction = this.animations.get('slow-run');
-
-			// if (runAction) {
-			// 	runAction.enabled = true;
-			// 	runAction.play()
-			// }
 		}
 	}
 
@@ -551,12 +512,11 @@ export class BasicCharacterController {
 
 		this.stateMachine.Update(delta, this.input);
 
-		this.shortMovingUpdate();
+		// this.shortMovingUpdate();
 
 		if (this.mixer) {
 			this.mixer.update(delta);
 		}
-
 
 	}
 
@@ -602,6 +562,41 @@ export class BasicCharacterController {
 		// this.intersecktionBox.setFromObject(this.InterseckBox);
 	}
 
+	/** События для анимации */
+
+	GetKeyDown(event) {
+
+		if (event.keyCode === 32 && !this.input.keys.space) {
+
+			this.input.onKeyDown();
+			this.shortMovingUpdate();
+
+			setTimeout(() => {
+				this.input.keys.space = false
+			}, 800)
+		}
+
+		// switch (event.keyCode) {
+
+		// 	case 32: // SPACE
+		// 		this.input.onKeyDown()
+		// 		break;
+
+		// }
+		// this.shortMovingUpdate();
+		// this.input.onKeyUp();
+	}
+
+	GetKeyUp(event) {
+		switch (event.keyCode) {
+
+			case 32: // SPACE
+				this.input.onKeyUp()
+				break;
+
+		}
+	}
+
 	/** Intersec  */
 
 	CreateInterseckBox(params) {
@@ -622,7 +617,7 @@ export class BasicCharacterController {
 		}
 
 		if (params.box.min.z < 0 || params.box.max.z < 0) {
-			z = Math.abs(params.box.min.z) + Math.abs(params.box.max.z);
+			z = Math.abs(params.box.min.z) + Math.abs(params.box.max.z) + 0.5;
 		} else {
 			z = Math.abs(params.box.min.z) - Math.abs(params.box.max.z);
 		}
@@ -630,9 +625,9 @@ export class BasicCharacterController {
 		const geometry = new THREE.BoxGeometry(x, y, z);
 		const material = new THREE.MeshStandardMaterial({
 			color: 0x00ff00,
-			wireframe: false,
+			wireframe: true,
 			transparent: true,
-			opacity: 0.5,
+			opacity: 0.3,
 			visible: ROOLES.colliderHelper,
 
 		});
@@ -640,7 +635,7 @@ export class BasicCharacterController {
 
 		truePos.x = params.position.x
 		truePos.y = params.position.y + Math.abs(x)
-		truePos.z = params.position.z
+		truePos.z = params.position.z + 1
 
 		this.shortMovePosition.up.disable = truePos.y
 		this.shortMovePosition.up.active = truePos.y * 1.5
@@ -888,29 +883,26 @@ export class BasicCharacterController {
 		if (this.input.keys.space) {
 
 			gsap.timeline()
-
 				.to(this.InterseckBox.position, {
 					duration: 0.4,
 					ease: 'sine.in',
 					y: this.shortMovePosition.up.active,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
-					}
-
-				}).to(this.InterseckBox.position, {
-					duration: 0.2,
+					},
+				}, ">")
+				.to(this.InterseckBox.position, {
+					duration: 0.4,
 					ease: "sine.out",
 					y: this.shortMovePosition.up.disable,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
 					},
-					onComplete: () => {
-						this.input.keys.space = false
-					}
 
 				}, ">");
 
 			/** Старт игры  */
+
 
 			!this.satrtGame ? this.satrtGame = true : ''
 

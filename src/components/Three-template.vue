@@ -96,8 +96,8 @@ export default {
         this.resize();
         this.orientationchange();
         this.getCurrentLive();
+        this.$refs.webGl.focus();
 
-        console.log(this.meshes)
         // this.timer();
     },
 
@@ -178,13 +178,13 @@ export default {
             this.canvas = this.$refs.webGl;
             this.scene = new THREE.Scene();
             this.scene.background = new THREE.Color(0xffffff);
-            this.scene.fog = new THREE.FogExp2(0xffffff, 0.04);
+            this.scene.fog = new THREE.FogExp2(0xffffff, 0.055);
 
             this.camera = new THREE.PerspectiveCamera(
                 this.fov.value,
                 this.sizes.width / this.sizes.height,
                 0.01,
-                50
+                40
             );
 
             // this.camera.position.x = 0;
@@ -313,8 +313,8 @@ export default {
                             onComplete: () => {
                                 this.$refs.preloader
                                     ? this.$refs.preloader.classList.remove(
-                                        "active"
-                                    )
+                                          "active"
+                                      )
                                     : "";
                                 this.player.GetIdleAnimation();
                                 this.player.CreateInterseckBoxColide();
@@ -408,7 +408,7 @@ export default {
                 return;
             }
 
-            if (this.score % 500 == 0) {
+            if (this.score % 700 == 0) {
                 if (this.gameSpeed.current < this.gameSpeed.maxSpeed) {
                     this.gameSpeed.current += 0.01;
 
@@ -418,15 +418,15 @@ export default {
                 }
             }
 
-            if (this.score % 1000 == 0) {
+            if (this.score % 1000 == 0 || this.score % 800 == 0) {
                 gsap.to(this.scene.fog, {
-                    density: 0.16,
+                    density: 0.18,
                 });
             }
 
             if (this.score % 700 == 0) {
                 gsap.to(this.scene.fog, {
-                    density: 0.04,
+                    density: 0.055,
                 });
             }
         },
@@ -441,14 +441,11 @@ export default {
             if (this.gameSpeed.current < this.gameSpeed.maxSpeed) {
                 this.world.GetNewSpeed(this.gameSpeed.current);
                 this.ground.SetGo(this.gameSpeed.current);
-                return
+                return;
             }
 
             this.world.GetNewSpeed(this.gameSpeed.maxSpeed);
             this.ground.SetGo(this.gameSpeed.maxSpeed);
-
-
-
         },
 
         checkIntersection(value) {
@@ -474,6 +471,14 @@ export default {
             this.pause = !this.pause;
             !this.pause ? this.tick() : "";
             console.log(this.pause);
+        },
+
+        startAction(event) {
+            this.player.GetKeyDown(event);
+        },
+
+        stopAction(event) {
+            this.player.GetKeyUp(event);
         },
 
         timeOver() {
@@ -588,12 +593,6 @@ export default {
             // this.camera.fov = this.fov.value;
             // this.camera.updateProjectionMatrix();
 
-            // this.meshes.length > 0
-            //     ? this.meshes.forEach((m) => {
-            //         m.Update(delta);
-            //     })
-            //     : "";
-
             if (this.world) {
                 this.world.totalUpdate(delta);
             }
@@ -603,14 +602,11 @@ export default {
             this.checkIntersection(this.world.GetIntersec());
 
             /** Получаем очки */
-            // this.score = Math.round(this.world.GetScore());
             this.getScore();
 
             /** Проверяем жизни */
 
             this.getCurrentLive();
-
-            // this.showQuestion = this.world.GetIntersec();
 
             /** Изменение скорости игры */
             this.changeSpeed();
@@ -679,12 +675,12 @@ export default {
             //     .max(50)
             //     .step(0.001)
             //     .name("A_Light intensity");
-            // this.gui
-            //     .add(this.scene.fog, "density")
-            //     .min(0)
-            //     .max(100)
-            //     .step(0.01)
-            //     .name("fog min");
+            this.gui
+                .add(this.scene.fog, "density")
+                .min(0)
+                .max(100)
+                .step(0.01)
+                .name("fog min");
 
             // this.gui.addColor(this.color, "fogColor").name("Fog color");
 
@@ -741,23 +737,34 @@ export default {
 </script>
 
 <template>
-    <div>
-        <Audio :show-question="showQuestion" :pause="pause" :start="showGame" :volume-params="0.8"
-            :music-data="'./music/back.mp3'"></Audio>
+    <div @keydown="startAction($event)" tabindex="0">
+        <Audio
+            :show-question="showQuestion"
+            :pause="pause"
+            :start="showGame"
+            :volume-params="0.8"
+            :music-data="'./music/back.mp3'"
+            tabindex="-1"
+        ></Audio>
 
-        <div class="preloader active" ref="preloader">
+        <div class="preloader active" ref="preloader" tabindex="-1">
             <div class="cssload-spin-box"></div>
         </div>
 
-        <div ref="webGl" class="webGl" tabindex="0"></div>
+        <div ref="webGl" class="webGl"></div>
 
-        <div class="score_container">
+        <div class="score_container" tabindex="-1">
             <p class="score_number">Очки: {{ score }}</p>
 
             <p class="score_number">Жизней: {{ live }}</p>
         </div>
 
-        <GameOverVue v-if="gameover" :total-score="score" @get-restart="restart"></GameOverVue>
+        <GameOverVue
+            tabindex="-1"
+            v-if="gameover"
+            :total-score="score"
+            @get-restart="restart"
+        ></GameOverVue>
 
         <!-- <QuestionsVue
             v-if="showQuestion && !gameover"
@@ -767,9 +774,9 @@ export default {
         >
         </QuestionsVue> -->
 
-        <Splash @show-start="showStart" v-if="!showGame"></Splash>
+        <Splash @show-start="showStart" v-if="!showGame" tabindex="-1"></Splash>
 
-        <div class="webGl__btn_container" tabindex="0" ref="pauseBtn">
+        <div class="webGl__btn_container" ref="pauseBtn" tabindex="-1">
             <button @click="getPause" class="webGl__btn">Pause</button>
         </div>
     </div>
