@@ -11,8 +11,6 @@ export class Ground {
 		this.params = params
 		this.speed = params.speed
 		this.loadModel(this.params);
-
-		console.log(store)
 	}
 
 	loadModel(params) {
@@ -27,16 +25,23 @@ export class Ground {
 
 				if (child.isMesh) {
 
+					console.log(child)
+
 					child.material.envMap = this.params.environment;
 					child.material.envMapIntensity = 4.2;
 					child.receiveShadow = true
+					child.userData.originalColor = child.material.color.clone();
+
 
 					// child.castShadow = true
 					child.frustumCulled = false;
 					// child.material.needsUpdate = true
+					// child.material = new THREE.MeshToonMaterial({
+					// 	color: child.userData.originalColor
+					// });
 
-					if(child.name.includes('Stratch')){
-						console.log(child)
+					if (child.name.includes('Stratch')) {
+
 						child.castShadow = true
 					}
 
@@ -49,20 +54,23 @@ export class Ground {
 						)
 						let texture = this.textureLoader.load(this.params.diffuse,
 							() => {
+
 								areaTextureCount.tCount = 1
 							}
 						)
 
-						child.material.transparent = true;
+						// console.log(this.params.diffuse)
+
 						alphaTexture.flipY = false;
 						texture.flipY = false;
-						child.material.emissiveIntensity = 2.5
+						// child.material.emissiveIntensity = 2.5
 
 						child.material.map = texture
 						child.material.alphaMap = alphaTexture;
+						child.material.transparent = true;
 
-						child.receiveShadow = false
-						child.castShadow = false
+						// child.receiveShadow = false
+						// child.castShadow = false
 
 
 					}
@@ -104,7 +112,6 @@ export class Ground {
 
 	SetGo(speed) {
 
-		// console.log(speed, 'SetGo')
 		this.speed = speed
 	}
 

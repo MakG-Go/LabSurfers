@@ -54,12 +54,11 @@ class BasicCharacterControllerInput {
 	}
 
 	onKeyDown() {
-
+		console.log('2')
 		this.keys.space = true
 	}
 
 	onKeyUp() {
-
 		this.keys.space = false;
 	}
 
@@ -144,7 +143,6 @@ class CharacterFSM extends FiniteStateMachine {
 
 		super();
 		this.proxy = proxy;
-		console.log(this.proxy)
 
 		this.Init();
 	}
@@ -285,10 +283,8 @@ class JumpState extends State {
 		this.prevState = this.getPrevName(prevState.Name)
 		const curAction = this.parent.proxy._animations.get('jump');
 		const mixer = curAction.getMixer();
-		mixer.addEventListener('finished', this.FinishedCallback);
 
-		// console.log(this.parent.proxy.colide, 'jump')
-		// if (this.parent.proxy.colide) return
+		mixer.addEventListener('finished', this.FinishedCallback);
 
 		if (prevState) {
 			const prevAction = this.parent.proxy._animations.get(prevState.Name);
@@ -312,6 +308,7 @@ class JumpState extends State {
 	}
 	Cleanup() {
 		const action = this.parent.proxy._animations.get('jump');
+
 		action.getMixer().removeEventListener('finished', this.FinishedCallback);
 	}
 
@@ -414,7 +411,6 @@ export class BasicCharacterController {
 						// this.params.scene.add(helper);
 
 						if (child.name === "alpha") {
-							console.log(child)
 
 							let alphaTexture = new THREE.TextureLoader().load(this.params.alpha)
 							child.material.side = THREE.DoubleSide
@@ -506,13 +502,12 @@ export class BasicCharacterController {
 
 	Update(delta) {
 
+
 		if (!this.model) {
 			return;
 		}
 
 		this.stateMachine.Update(delta, this.input);
-
-		// this.shortMovingUpdate();
 
 		if (this.mixer) {
 			this.mixer.update(delta);
@@ -552,6 +547,12 @@ export class BasicCharacterController {
 	}
 
 	GetStart() {
+
+
+		/** Старт игры  */
+
+		!this.satrtGame ? this.satrtGame = true : ''
+
 		return this.satrtGame
 	}
 
@@ -566,13 +567,17 @@ export class BasicCharacterController {
 
 	GetKeyDown(event) {
 
-		if (event.keyCode === 32 && !this.input.keys.space) {
+		this.GetStart()
+
+		if (event.keyCode === 32 && !this.input.keys.space && !this.detectedColide) {
 
 			this.input.onKeyDown();
 			this.shortMovingUpdate();
 
 			setTimeout(() => {
-				this.input.keys.space = false
+				if (this.input.keys.space) {
+					this.input.keys.space = false
+				}
 			}, 800)
 		}
 
@@ -611,9 +616,9 @@ export class BasicCharacterController {
 		}
 
 		if (params.box.min.y < 0 || params.box.max.y < 0) {
-			y = Math.abs(params.box.min.y) + Math.abs(params.box.max.y);
+			y = Math.abs(params.box.min.y) + Math.abs(params.box.max.y) + 0.5;
 		} else {
-			y = Math.abs(params.box.min.y) - Math.abs(params.box.max.y);
+			y = Math.abs(params.box.min.y) - Math.abs(params.box.max.y) - 0.5;
 		}
 
 		if (params.box.min.z < 0 || params.box.max.z < 0) {
@@ -890,7 +895,7 @@ export class BasicCharacterController {
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
 					},
-				}, ">")
+				})
 				.to(this.InterseckBox.position, {
 					duration: 0.4,
 					ease: "sine.out",
@@ -898,13 +903,12 @@ export class BasicCharacterController {
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
 					},
+					onComplete: () => {
 
-				}, ">");
+						this.input.keys.space = false
+					}
 
-			/** Старт игры  */
-
-
-			!this.satrtGame ? this.satrtGame = true : ''
+				});
 
 			return;
 		}

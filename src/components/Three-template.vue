@@ -1,6 +1,7 @@
 
 <script>
 import * as dat from "lil-gui";
+import Stats from "three/addons/libs/stats.module.js";
 import * as THREE from "three";
 import _ from "lodash";
 import { gsap } from "gsap";
@@ -136,7 +137,9 @@ export default {
         init() {
             this.createScene();
 
-            // this.createOrbitControl();
+            if (ROOLES.orbitControls) {
+                this.createOrbitControl();
+            }
 
             this.getLight();
             this.getEnvierment();
@@ -150,7 +153,9 @@ export default {
                 this.getArea.enemies
             );
 
-            // this.getGui();
+            if (ROOLES.guiHelper) {
+                this.getGui();
+            }
 
             /** Clock */
 
@@ -212,6 +217,10 @@ export default {
             this.scene.add(this.camera);
 
             this.axisHelper = new THREE.AxesHelper();
+
+            this.stats = new Stats();
+            this.canvas.appendChild(this.stats.dom);
+
             // this.scene.add(this.axisHelper);
         },
 
@@ -589,6 +598,8 @@ export default {
             let delta = this.clock.getDelta();
             this.pause ? this.clock.stop() : this.clock.start();
 
+            this.stats.update();
+
             // this.camera.lookAt(this.target);
             // this.camera.fov = this.fov.value;
             // this.camera.updateProjectionMatrix();
@@ -753,11 +764,11 @@ export default {
 
         <div ref="webGl" class="webGl"></div>
 
-        <div class="score_container" tabindex="-1">
+        <!-- <div class="score_container" tabindex="-1">
             <p class="score_number">Очки: {{ score }}</p>
 
             <p class="score_number">Жизней: {{ live }}</p>
-        </div>
+        </div> -->
 
         <GameOverVue
             tabindex="-1"

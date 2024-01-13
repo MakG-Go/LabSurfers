@@ -334,7 +334,7 @@ export class WorldManager {
 
 			this.CheckIntersec(item);
 
-			item.Update(delta); 
+			item.Update(delta);
 		})
 
 		if (!this.interseck && this.startGame || !ROOLES.stop_with_intersec && this.startGame) {

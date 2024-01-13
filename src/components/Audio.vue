@@ -22,7 +22,7 @@ export default {
         getVolume() {
             if (this.pause || this.showQuestion) {
                 gsap.to(this.$refs.gameMusic, {
-                    volume: 0.1,
+                    volume: 0.01,
                 });
             } else {
                 gsap.to(this.$refs.gameMusic, {

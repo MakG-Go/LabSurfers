@@ -8,10 +8,10 @@
                         <h1>{{ getTextLeft.title }}</h1>
                         <p>{{ getTextLeft.descripton }}</p>
                     </div>
-                    <div>
+                    <!-- <div>
                         <h1>{{ getTextRight.title }}</h1>
                         <p>{{ getTextRight.descripton }}</p>
-                    </div>
+                    </div> -->
                 </div>
                 <button class="splash__btn" @click="getStart">Ok</button>
             </div>
@@ -38,16 +38,16 @@ export default {
                         descripton: "В лево",
                     },
                 },
-                right: {
-                    desctop: {
-                        title: "Старт игры",
-                        descripton: "Нажми пробел",
-                    },
-                    mobile: {
-                        title: "Свайп в право",
-                        descripton: "В право",
-                    },
-                },
+                // right: {
+                //     desctop: {
+                //         title: "Старт игры",
+                //         descripton: "Нажми пробел",
+                //     },
+                //     mobile: {
+                //         title: "Свайп в право",
+                //         descripton: "В право",
+                //     },
+                // },
             },
         };
     },
