@@ -99,6 +99,13 @@ export default {
         this.getCurrentLive();
         this.$refs.webGl.focus();
 
+        // console.log(this.scene.children);
+        // this.scene.children.traverse((child) => {
+        //     if (child.isMesh) {
+        //         console.log(child);
+        //     }
+        // });
+
         // this.timer();
     },
 
@@ -497,6 +504,8 @@ export default {
         restart() {
             gsap.globalTimeline.clear();
 
+            console.log("restart");
+
             this.$refs.preloader.classList.add("active");
             gsap.to(this.$refs.preloader, {
                 opacity: 1,
@@ -519,6 +528,7 @@ export default {
                     child.userData.parentName = NaN;
                     child.userData.key = NaN;
                     child.userData.originalColor = NaN;
+
                     if (child instanceof THREE.Texture) {
                         child.dispose();
                         child = null;
@@ -527,6 +537,7 @@ export default {
             });
 
             this.meshes = [];
+            this.mixers = [];
 
             this.renderer.forceContextLoss();
             this.renderer.renderLists.dispose();
@@ -583,6 +594,7 @@ export default {
             });
 
             this.meshes = [];
+            this.mixers = [];
 
             this.renderer.forceContextLoss();
             this.renderer.renderLists.dispose();
@@ -598,7 +610,7 @@ export default {
             let delta = this.clock.getDelta();
             this.pause ? this.clock.stop() : this.clock.start();
 
-            this.stats.update();
+            // this.stats.update();
 
             // this.camera.lookAt(this.target);
             // this.camera.fov = this.fov.value;
@@ -764,11 +776,11 @@ export default {
 
         <div ref="webGl" class="webGl"></div>
 
-        <!-- <div class="score_container" tabindex="-1">
+        <div class="score_container" tabindex="-1">
             <p class="score_number">Очки: {{ score }}</p>
 
             <p class="score_number">Жизней: {{ live }}</p>
-        </div> -->
+        </div>
 
         <GameOverVue
             tabindex="-1"

@@ -50,10 +50,13 @@ class WorldObject {
 
 					child.material.envMap = this.params.environment;
 					child.material.envMapIntensity = 3;
-					child.material.needsUpdate = true;
 
-					// child.castShadow = true
+
 					// child.frustumCulled = false;
+
+					child.castShadow = true
+					child.frustumCulled = false;
+					child.material.needsUpdate = true;
 
 				}
 
@@ -77,6 +80,7 @@ class WorldObject {
 					this.skinnedMesh = child
 				}
 
+
 			})
 
 			// this.mixer = new THREE.AnimationMixer(this.model);
@@ -87,13 +91,14 @@ class WorldObject {
 			// 	this.model.position.x = this.model.position.x * -1
 			// }
 
-			// this.boxHelper = new THREE.BoxHelper(this.model, 0xff0000);
-			// this.boxHelper.position.copy(this.model.position)
+			this.boxHelper = new THREE.BoxHelper(this.model, 0xff0000);
+			this.boxHelper.position.copy(this.model.position)
 
 
 
 			this.params.scene.add(this.model);
-			// this.model.add(this.boxHelper)
+
+			if (ROOLES.colliderHelper) { this.model.add(this.boxHelper) }
 
 
 		});
@@ -178,10 +183,17 @@ class WorldObject {
 		// }
 
 
-		if (this.model.children[0].geometry != null) {
+		// if (this.model.children[0].geometry != null) {
+
+		// 	this.collider.setFromObject(this.model)
+		// }
+
+
+		if (this.model.children) {
 
 			this.collider.setFromObject(this.model)
 		}
+
 
 		// this.collider.clone(this.bBox)
 

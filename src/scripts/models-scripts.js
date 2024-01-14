@@ -392,6 +392,9 @@ export class BasicCharacterController {
 
 						child.material.transparent = true;
 						child.userData.originalColor = child.material.color.clone();
+						// console.log(child.material)
+
+
 
 						// child.material.emissive = true
 						// child.material.emissive = new THREE.Color({ r: 0.01, g: 0.01, b: 0.06 })
@@ -410,6 +413,14 @@ export class BasicCharacterController {
 						// const helper = new THREE.Box3Helper(box, 0xffff00);
 						// this.params.scene.add(helper);
 
+						// if (child.material.name === "Yellow") {
+
+						// 	child.material = new THREE.MeshToonMaterial({
+						// 		color: ('#FFD700')
+						// 	})
+						// 	console.log(child)
+						// }
+
 						if (child.name === "alpha") {
 
 							let alphaTexture = new THREE.TextureLoader().load(this.params.alpha)
@@ -420,7 +431,7 @@ export class BasicCharacterController {
 
 						child.material.normalScale = new THREE.Vector2(0.9, 0.05)
 
-						// child.material.envMapIntensity = 5
+						child.material.envMapIntensity = 5
 						child.material.envMap = this.params.environment;
 						child.material.envMapIntensity = 4.2;
 
@@ -567,10 +578,10 @@ export class BasicCharacterController {
 
 	GetKeyDown(event) {
 
-		this.GetStart()
 
 		if (event.keyCode === 32 && !this.input.keys.space && !this.detectedColide) {
 
+			this.GetStart();
 			this.input.onKeyDown();
 			this.shortMovingUpdate();
 

@@ -28,7 +28,7 @@ export class Ground {
 					console.log(child)
 
 					child.material.envMap = this.params.environment;
-					child.material.envMapIntensity = 4.2;
+					child.material.envMapIntensity = 4;
 					child.receiveShadow = true
 					child.userData.originalColor = child.material.color.clone();
 
@@ -97,9 +97,11 @@ export class Ground {
 		if (!this.model) return
 
 		if (this.model.position.z > -72) {
+
 			this.model.position.z -= this.speed
 		}
 		else {
+			console.log('next')
 			this.model.position.z = 0
 		}
 

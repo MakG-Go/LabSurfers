@@ -21,7 +21,7 @@ export let forest = {
     name: "Орбита",
     area: "models/ground_light.glb",
     alpha: "textures/tree_all_alpha.jpg",
-    diffuse: "textures/tree_all_3.png",
+    diffuse: "textures/tree_all_4.png",
     enemies: forestEnemie
 }
 

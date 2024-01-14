@@ -19,8 +19,8 @@ export let forestEnemie = [
         model: "models/enemie_1.glb",
         alpha: "textures/zabor_alpha.png",
     },
-    // {
-    //     model: "models/enemie_2.glb",
-    // },
+    {
+        model: "models/enemie_3.glb",
+    },
 ]
 
