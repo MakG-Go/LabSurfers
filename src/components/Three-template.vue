@@ -610,7 +610,7 @@ export default {
             let delta = this.clock.getDelta();
             this.pause ? this.clock.stop() : this.clock.start();
 
-            // this.stats.update();
+            this.stats.update();
 
             // this.camera.lookAt(this.target);
             // this.camera.fov = this.fov.value;

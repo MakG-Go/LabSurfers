@@ -1,6 +1,7 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { AnimationMixer, Vector3 } from "three";
 import * as THREE from "three"
+import { OBB } from 'three/addons/math/OBB.js';
 import { gsap } from 'gsap';
 import { ROOLES } from "@/scripts/rooles.js";
 import _ from "lodash";
@@ -340,7 +341,9 @@ export class BasicCharacterController {
 			right: -1.2,
 			up: {
 				active: 3,
-				disable: 2.08
+				disable: 2.08,
+				zActive: null,
+				zDisable: null
 
 			}
 		}
@@ -524,6 +527,7 @@ export class BasicCharacterController {
 			this.mixer.update(delta);
 		}
 
+
 	}
 
 	GetPlayer() {
@@ -627,18 +631,19 @@ export class BasicCharacterController {
 		}
 
 		if (params.box.min.y < 0 || params.box.max.y < 0) {
-			y = Math.abs(params.box.min.y) + Math.abs(params.box.max.y) + 0.5;
+			y = Math.abs(params.box.min.y) + Math.abs(params.box.max.y);
 		} else {
-			y = Math.abs(params.box.min.y) - Math.abs(params.box.max.y) - 0.5;
+			y = Math.abs(params.box.min.y) - Math.abs(params.box.max.y);
 		}
 
 		if (params.box.min.z < 0 || params.box.max.z < 0) {
-			z = Math.abs(params.box.min.z) + Math.abs(params.box.max.z) + 0.5;
+			z = Math.abs(params.box.min.z) + Math.abs(params.box.max.z) - 0.5;
 		} else {
-			z = Math.abs(params.box.min.z) - Math.abs(params.box.max.z);
+			z = Math.abs(params.box.min.z) - Math.abs(params.box.max.z) + 0.5;
 		}
 
 		const geometry = new THREE.BoxGeometry(x, y, z);
+
 		const material = new THREE.MeshStandardMaterial({
 			color: 0x00ff00,
 			wireframe: true,
@@ -647,14 +652,18 @@ export class BasicCharacterController {
 			visible: ROOLES.colliderHelper,
 
 		});
+
 		const cube = new THREE.Mesh(geometry, material);
 
 		truePos.x = params.position.x
 		truePos.y = params.position.y + Math.abs(x)
-		truePos.z = params.position.z + 1
+		truePos.z = params.position.z + 0.5
 
 		this.shortMovePosition.up.disable = truePos.y
 		this.shortMovePosition.up.active = truePos.y * 1.5
+		this.shortMovePosition.up.zDisable = truePos.z
+		this.shortMovePosition.up.zActive = truePos.z * 3
+
 
 		cube.position.set(...truePos);
 
@@ -663,7 +672,7 @@ export class BasicCharacterController {
 
 	CreateInterseckBoxColide() {
 
-		console.log('colide')
+		const group = new THREE.Group();
 
 		this.InterseckBox = this.CreateInterseckBox({
 			box: this.plaerBox,
@@ -671,9 +680,18 @@ export class BasicCharacterController {
 			intersection: this.intersecktionBox
 		})
 
-		this.params.scene.add(this.InterseckBox);
+		// this.InterseckBox.rotateX(Math.PI * -0.30)
 
+		this.params.scene.add(this.InterseckBox);
 		this.intersecktionBox.setFromObject(this.InterseckBox)
+
+		const helper = new THREE.Box3Helper(this.intersecktionBox, 0x00ffff);
+
+		/** BoundingBox для хелпера */
+		ROOLES.colliderHelper ? this.params.scene.add(helper) : ''
+
+
+
 	}
 
 	GetIntersecEvent(e) {
@@ -903,6 +921,7 @@ export class BasicCharacterController {
 					duration: 0.4,
 					ease: 'sine.in',
 					y: this.shortMovePosition.up.active,
+					z: this.shortMovePosition.up.zActive,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
 					},
@@ -911,6 +930,7 @@ export class BasicCharacterController {
 					duration: 0.4,
 					ease: "sine.out",
 					y: this.shortMovePosition.up.disable,
+					z: this.shortMovePosition.up.zDisable,
 					onUpdate: () => {
 						this.intersecktionBox.setFromObject(this.InterseckBox)
 					},

@@ -16,7 +16,7 @@ class WorldObject {
 		this.position = new THREE.Vector3(0, 0, 0);
 		this.quaternion = new THREE.Quaternion();
 		this.collider = new THREE.Box3();
-		this.bBox
+		this.helper
 
 		this.side = side
 
@@ -54,7 +54,7 @@ class WorldObject {
 
 					// child.frustumCulled = false;
 
-					child.castShadow = true
+					child.castShadow = false
 					child.frustumCulled = false;
 					child.material.needsUpdate = true;
 
@@ -71,11 +71,6 @@ class WorldObject {
 
 				}
 
-				// if (child.name.includes('colider')) {
-
-				// 	this.bBox = child.geometry.boundingBox.clone();
-				// }
-
 				if (child.isSkinnedMesh) {
 					this.skinnedMesh = child
 				}
@@ -91,9 +86,10 @@ class WorldObject {
 			// 	this.model.position.x = this.model.position.x * -1
 			// }
 
-			this.boxHelper = new THREE.BoxHelper(this.model, 0xff0000);
-			this.boxHelper.position.copy(this.model.position)
 
+
+			this.boxHelper = new THREE.BoxHelper(this.model, 0x0000ff);
+			this.boxHelper.position.copy(this.model.position)
 
 
 			this.params.scene.add(this.model);
@@ -195,7 +191,6 @@ class WorldObject {
 		}
 
 
-		// this.collider.clone(this.bBox)
 
 	}
 

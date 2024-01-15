@@ -32,7 +32,6 @@ export class Ground {
 					child.receiveShadow = true
 					child.userData.originalColor = child.material.color.clone();
 
-
 					// child.castShadow = true
 					child.frustumCulled = false;
 					// child.material.needsUpdate = true
