@@ -2,15 +2,26 @@
 <script>
 import * as dat from "lil-gui";
 import Stats from "three/addons/libs/stats.module.js";
+import { GetDetectMobile } from "@/scripts/mobileDetect.js";
+
 import * as THREE from "three";
+import { CSS3DRenderer } from "three/examples/jsm/renderers/CSS3DRenderer.js";
 import _ from "lodash";
 import { gsap } from "gsap";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+import { GammaCorrectionShader } from "three/examples/jsm/shaders/GammaCorrectionShader.js";
+import { DotScreenPass } from "three/examples/jsm/postprocessing/DotScreenPass.js";
+import { RenderPixelatedPass } from "three/examples/jsm/postprocessing/RenderPixelatedPass.js";
+import { HalftonePass } from "three/addons/postprocessing/HalftonePass.js";
+
 import { BasicCharacterController } from "@/scripts/models-scripts.js";
 import { Ground } from "@/scripts/ground.js";
 import { WorldManager } from "@/scripts/world.js";
-
-import { GetDetectMobile } from "@/scripts/mobileDetect.js";
+import { CssMesh } from "@/scripts/cssMesh.js";
 
 import QuestionsVue from "@/components/Questions.vue";
 import GameOverVue from "@/components/GameOver.vue";
@@ -37,17 +48,25 @@ export default {
     data() {
         return {
             mobile: null,
-            getArea: forest,
             fov: { value: 85 },
-            showGame: false,
-            startGame: false,
+            // renderTarget: null,
+            // effectComposer: null,
 
+            raycaster: new THREE.Raycaster(),
+            mouse: new THREE.Vector2(),
             target: new THREE.Vector3(0, 0, 6.5),
+            sizes: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+            },
             cameraPos: [1.2, 3, -1.65],
             color: {
                 fogColor: "#0x000000",
             },
 
+            showGame: false,
+            startGame: false,
+            pauseButton: null,
             model: {
                 character: {
                     url: "models/toy_1.glb",
@@ -57,6 +76,7 @@ export default {
                 },
                 doors: ["models/door-3.glb", "models/door-2.glb"],
             },
+            getArea: forest,
 
             mixers: [],
             meshes: [],
@@ -71,17 +91,25 @@ export default {
 
             intersection: false,
 
-            // gameSpeed: 0,
-            // maxSpeed: 0.8,
-
             loadCounter: 0,
             score: 0,
             showQuestion: false,
-            // controls: null,
-
             allContentLoaded: false,
-
             live: null,
+
+            /** Post */
+            halfToneParams: {
+                shape: 1,
+                radius: 6,
+                rotateR: Math.PI / 12,
+                rotateB: (Math.PI / 12) * 2,
+                rotateG: (Math.PI / 12) * 3,
+                scatter: 0,
+                blending: 1,
+                blendingMode: 1,
+                greyscale: false,
+                disable: false,
+            },
         };
     },
 
@@ -92,7 +120,7 @@ export default {
     mounted() {
         this.getFov();
         this.changeSpeed = _.throttle(this.setSpeed, 1);
-        this.sizes = this.getSizes();
+
         this.init();
         this.resize();
         this.orientationchange();
@@ -150,15 +178,20 @@ export default {
 
             this.getLight();
             this.getEnvierment();
+            this.createPauseButton();
 
             this.ground = this.getGround(this.getArea);
             this.player = this.getModel(knitted_man);
-
             this.world = this.getEnemies(
                 this.player,
                 this.ground,
                 this.getArea.enemies
             );
+
+            this.createPostProcess();
+            // this.createPixelPass();
+            // this.createDotPass();
+            this.createHalfTonePos();
 
             if (ROOLES.guiHelper) {
                 this.getGui();
@@ -188,6 +221,8 @@ export default {
 
         createScene() {
             this.canvas = this.$refs.webGl;
+            this.cssCanvas = this.$refs.webglCss;
+
             this.scene = new THREE.Scene();
             this.scene.background = new THREE.Color(0xffffff);
             this.scene.fog = new THREE.FogExp2(0xffffff, 0.055);
@@ -218,6 +253,10 @@ export default {
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             this.renderer.shadowMap.enabled = true;
             this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+            this.renderer.toneMapping = THREE.ReinhardToneMapping;
+            this.renderer.toneMappingExposure = 1.5;
+
+            this.renderer.autoClear = false;
 
             this.canvas.appendChild(this.renderer.domElement);
 
@@ -228,8 +267,132 @@ export default {
             this.stats = new Stats();
             this.canvas.appendChild(this.stats.dom);
 
+            /** css render */
+
+            this.cssRenderer = new CSS3DRenderer();
+            this.cssRenderer.setSize(this.sizes.width, this.sizes.height);
+            this.cssCanvas.appendChild(this.cssRenderer.domElement);
+
             // this.scene.add(this.axisHelper);
         },
+
+        createPostProcess() {
+            let RenderTargetClass = null;
+
+            // if (
+            //     this.renderer.getPixelRatio() === 1 &&
+            //     this.renderer.capabilities.isWebGL2
+            // ) {
+            //     console.log("1");
+            //     RenderTargetClass = THREE.WebGL1Renderer;
+            //     console.log("Using WebGLMultisampleRenderTarget");
+            // } else {
+            //     console.log("2");
+            //     RenderTargetClass = THREE.WebGLRenderTarget;
+            //     console.log("Using WebGLRenderTarget");
+            // }
+
+            RenderTargetClass = THREE.WebGLRenderTarget;
+
+            this.renderTarget = new RenderTargetClass(800, 600, {
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.LinearFilter,
+                format: THREE.RGBAFormat,
+            });
+
+            this.effectComposer = new EffectComposer(
+                this.renderer,
+                this.renderTarget
+            );
+            this.effectComposer.setPixelRatio(
+                Math.min(window.devicePixelRatio, 2)
+            );
+            this.effectComposer.setSize(this.sizes.width, this.sizes.height);
+
+            this.renderPass = new RenderPass(this.scene, this.camera);
+            this.effectComposer.addPass(this.renderPass);
+
+            this.renderPass.renderToScreen = true;
+
+            this.createGammaCorector();
+        },
+
+        createGammaCorector() {
+            const gammaCorrectionPass = new ShaderPass(GammaCorrectionShader);
+            this.effectComposer.addPass(gammaCorrectionPass);
+        },
+
+        createDotPass() {
+            this.dotScreenPass = new DotScreenPass();
+            this.dotScreenPass.enabled = true;
+
+            this.effectComposer.addPass(this.dotScreenPass);
+            console.log(this.effectComposer);
+        },
+
+        createPixelPass() {
+            this.renderPixelatedPass = new RenderPixelatedPass(
+                10,
+                this.scene,
+                this.camera
+            );
+            this.renderPixelatedPass.normalEdgeStrength = 0;
+            this.renderPixelatedPass.depthEdgeStrength = 2;
+            this.effectComposer.addPass(this.renderPixelatedPass);
+        },
+
+        /** -------------------------------- */
+        createHalfTonePos() {
+            this.halftonePass = new HalftonePass(
+                this.sizes.width,
+                this.sizes.height,
+                this.halfToneParams
+            );
+
+            this.effectComposer.addPass(this.halftonePass);
+
+            this.controller = {
+                radius: this.halftonePass.uniforms["radius"].value,
+                rotateR:
+                    this.halftonePass.uniforms["rotateR"].value /
+                    (Math.PI / 180),
+                rotateG:
+                    this.halftonePass.uniforms["rotateG"].value /
+                    (Math.PI / 180),
+                rotateB:
+                    this.halftonePass.uniforms["rotateB"].value /
+                    (Math.PI / 180),
+                scatter: this.halftonePass.uniforms["scatter"].value,
+                shape: this.halftonePass.uniforms["shape"].value,
+                greyscale: this.halftonePass.uniforms["greyscale"].value,
+                blending: this.halftonePass.uniforms["blending"].value,
+                blendingMode: this.halftonePass.uniforms["blendingMode"].value,
+                disable: this.halftonePass.uniforms["disable"].value,
+            };
+        },
+
+        onGUIChange() {
+            // update uniforms
+            this.halftonePass.uniforms["radius"].value = this.controller.radius;
+            this.halftonePass.uniforms["rotateR"].value =
+                this.controller.rotateR * (Math.PI / 180);
+            this.halftonePass.uniforms["rotateG"].value =
+                this.controller.rotateG * (Math.PI / 180);
+            this.halftonePass.uniforms["rotateB"].value =
+                this.controller.rotateB * (Math.PI / 180);
+            this.halftonePass.uniforms["scatter"].value =
+                this.controller.scatter;
+            this.halftonePass.uniforms["shape"].value = this.controller.shape;
+            this.halftonePass.uniforms["greyscale"].value =
+                this.controller.greyscale;
+            this.halftonePass.uniforms["blending"].value =
+                this.controller.blending;
+            this.halftonePass.uniforms["blendingMode"].value =
+                this.controller.blendingMode;
+            this.halftonePass.uniforms["disable"].value =
+                this.controller.disable;
+        },
+        /** -------------------------------- */
 
         createOrbitControl() {
             /** Controls */
@@ -237,6 +400,14 @@ export default {
             this.controls.enableDamping = true;
             this.controls.minDistance = 3;
             this.controls.maxDistance = 20;
+
+            this.controls2 = new OrbitControls(
+                this.camera,
+                this.cssRenderer.domElement
+            );
+            this.controls2.enableDamping = true;
+            this.controls2.minDistance = 3;
+            this.controls2.maxDistance = 20;
         },
 
         getLight() {
@@ -263,23 +434,23 @@ export default {
         },
 
         getSize() {
-            // Update sizes
-            let w, h;
+            this.sizes.width = window.innerWidth;
+            this.sizes.height = window.innerHeight;
 
-            // this.sizes.width = window.innerWidth;
-            // this.sizes.height = window.innerHeight;
-            w = window.innerWidth;
-            h = window.innerHeight;
-
-            console.log(w, h);
+            console.log(this.sizes.width / this.sizes.height);
+            if (this.sizes.width / this.sizes.height == null) return;
 
             // Update camera
-            this.camera.aspect = w / h;
+            this.camera.aspect = this.sizes.width / this.sizes.height;
             this.camera.updateProjectionMatrix();
 
             // Update renderer
-            this.renderer.setSize(w, h);
+            this.renderer.setSize(this.sizes.width, this.sizes.height);
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            this.cssRenderer.setSize(this.sizes.width, this.sizes.height);
+
+            return;
         },
 
         resize() {
@@ -305,19 +476,58 @@ export default {
             );
         },
 
-        getSizes() {
-            return {
-                width: window.innerWidth,
-                height: window.innerHeight,
-            };
+        btnClick(event) {
+            this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+
+            const intersects = this.raycaster.intersectObject(this.pauseButton);
+
+            if (intersects.length > 0) {
+                const hoveredObject = intersects[0].object;
+                if (hoveredObject.name == "pause") {
+                    return this.getPause();
+                }
+            }
         },
 
         /** Методы игрового движка */
+
+        createPauseButton() {
+            let buttonGeometry = new THREE.PlaneGeometry(0.5, 0.25);
+            let buttonMaterial = new THREE.MeshBasicMaterial({
+                color: "rgb(48, 59, 78)",
+            });
+
+            console.log(this.pauseButton, "pauseButton");
+
+            let button = new THREE.Mesh(buttonGeometry, buttonMaterial);
+            button.name = "pause";
+            button.rotation.x = Math.PI;
+            button.position.y = 2.95;
+            button.position.x = 2.25;
+            button.lookAt(this.camera.position);
+            this.pauseButton = button;
+            this.scene.add(button);
+
+            let cssElem = new CssMesh({
+                name: "Пауза",
+                type: "div",
+                width: 0.5,
+                height: 0.25,
+                position: button.position,
+                rotation: button.rotation,
+            });
+
+            this.scene.add(cssElem.compliteMash);
+        },
 
         getLoadStatus() {
             return new THREE.LoadingManager(
                 () => {
                     this.loadCounter++;
+
+                    console.log("auf");
 
                     //  enemyCount.eCount == ROOLES.enemy
                     // console.log(enemyCount.eCount, "enemyCount");
@@ -612,6 +822,7 @@ export default {
 
             this.stats.update();
 
+            // this.pauseButton.lookAt(this.camera.position);
             // this.camera.lookAt(this.target);
             // this.camera.fov = this.fov.value;
             // this.camera.updateProjectionMatrix();
@@ -621,14 +832,12 @@ export default {
             }
 
             /** Получаем пересечение */
-
             this.checkIntersection(this.world.GetIntersec());
 
             /** Получаем очки */
             this.getScore();
 
             /** Проверяем жизни */
-
             this.getCurrentLive();
 
             /** Изменение скорости игры */
@@ -640,7 +849,11 @@ export default {
             // this.controls.update();
 
             // Render
+
             this.renderer.render(this.scene, this.camera);
+            // this.effectComposer.render();
+            // console.log(this.effectComposer);
+            this.cssRenderer.render(this.scene, this.camera);
 
             !this.pause ? requestAnimationFrame(this.tick) : "";
         },
@@ -698,58 +911,112 @@ export default {
             //     .max(50)
             //     .step(0.001)
             //     .name("A_Light intensity");
-            this.gui
-                .add(this.scene.fog, "density")
-                .min(0)
-                .max(100)
-                .step(0.01)
-                .name("fog min");
+            // this.gui
+            //     .add(this.scene.fog, "density")
+            //     .min(0)
+            //     .max(100)
+            //     .step(0.01)
+            //     .name("fog min");
 
             // this.gui.addColor(this.color, "fogColor").name("Fog color");
 
-            this.gui
-                .add(this.fov, "value")
-                .min(0)
-                .max(170)
-                .step(1)
-                .name("Camera Fov")
-                .onFinishChange(this.camera.updateProjectionMatrix());
+            // this.gui
+            //     .add(this.fov, "value")
+            //     .min(0)
+            //     .max(170)
+            //     .step(1)
+            //     .name("Camera Fov")
+            //     .onFinishChange(this.camera.updateProjectionMatrix());
+
+            // this.gui
+            //     .add(this.camera.position, "y")
+            //     .min(0)
+            //     .max(10)
+            //     .step(0.01)
+            //     .name("Camera Y");
+
+            // this.gui
+            //     .add(this.camera.position, "z")
+            //     .min(-10)
+            //     .max(0)
+            //     .step(0.01)
+            //     .name("Camera z");
+
+            // this.gui
+            //     .add(this.camera.position, "x")
+            //     .min(-10)
+            //     .max(10)
+            //     .step(0.01)
+            //     .name("Camera x");
+
+            // this.gui
+            //     .add(this.target, "z")
+            //     .min(0)
+            //     .max(10)
+            //     .step(0.01)
+            //     .name("Camera target Z")
+            //     .onFinishChange(this.camera.updateProjectionMatrix());
+            // this.gui
+            //     .add(this.target, "y")
+            //     .min(-2)
+            //     .max(10)
+            //     .step(0.01)
+            //     .name("Camera target Y")
+            //     .onFinishChange(this.camera.updateProjectionMatrix());
 
             this.gui
-                .add(this.camera.position, "y")
-                .min(0)
+                .add(this.pauseButton.position, "x")
+                .min(-5)
                 .max(10)
                 .step(0.01)
-                .name("Camera Y");
+                .name("pause pos x");
 
             this.gui
-                .add(this.camera.position, "z")
-                .min(-10)
-                .max(0)
+                .add(this.pauseButton.position, "y")
+                .min(-5)
+                .max(10)
                 .step(0.01)
-                .name("Camera z");
+                .name("pause pos y");
 
             this.gui
-                .add(this.camera.position, "x")
-                .min(-10)
-                .max(10)
-                .step(0.01)
-                .name("Camera x");
-
+                .add(this.controller, "shape", {
+                    Dot: 1,
+                    Ellipse: 2,
+                    Line: 3,
+                    Square: 4,
+                })
+                .onChange(this.onGUIChange);
             this.gui
-                .add(this.target, "z")
-                .min(0)
-                .max(10)
-                .step(0.01)
-                .name("Camera target Z")
-                .onFinishChange(this.camera.updateProjectionMatrix());
+                .add(this.controller, "radius", 1, 25)
+                .onChange(this.onGUIChange);
             this.gui
-                .add(this.target, "y")
-                .min(-2)
-                .max(10)
-                .step(0.01)
-                .name("Camera target Y")
-                .onFinishChange(this.camera.updateProjectionMatrix());
+                .add(this.controller, "rotateR", 0, 90)
+                .onChange(this.onGUIChange);
+            this.gui
+                .add(this.controller, "rotateG", 0, 90)
+                .onChange(this.onGUIChange);
+            this.gui
+                .add(this.controller, "rotateB", 0, 90)
+                .onChange(this.onGUIChange);
+            this.gui
+                .add(this.controller, "scatter", 0, 1, 0.01)
+                .onChange(this.onGUIChange);
+            this.gui
+                .add(this.controller, "greyscale")
+                .onChange(this.onGUIChange);
+            this.gui
+                .add(this.controller, "blending", 0, 1, 0.01)
+                .onChange(this.onGUIChange);
+            this.gui
+                .add(this.controller, "blendingMode", {
+                    Linear: 1,
+                    Multiply: 2,
+                    Add: 3,
+                    Lighter: 4,
+                    Darker: 5,
+                })
+                .onChange(this.onGUIChange);
+            this.gui.add(this.controller, "disable").onChange(this.onGUIChange);
         },
 
         // newArea() {
@@ -774,7 +1041,8 @@ export default {
             <div class="cssload-spin-box"></div>
         </div>
 
-        <div ref="webGl" class="webGl"></div>
+        <div ref="webglCss" class="webglCss"></div>
+        <div ref="webGl" class="webGl" @click="btnClick($event)"></div>
 
         <div class="score_container" tabindex="-1">
             <p class="score_number">Очки: {{ score }}</p>
@@ -799,9 +1067,9 @@ export default {
 
         <Splash @show-start="showStart" v-if="!showGame" tabindex="-1"></Splash>
 
-        <div class="webGl__btn_container" ref="pauseBtn" tabindex="-1">
+        <!-- <div class="webGl__btn_container" ref="pauseBtn" tabindex="-1">
             <button @click="getPause" class="webGl__btn">Pause</button>
-        </div>
+        </div> -->
     </div>
 </template>
 

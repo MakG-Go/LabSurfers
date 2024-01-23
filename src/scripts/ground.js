@@ -25,8 +25,6 @@ export class Ground {
 
 				if (child.isMesh) {
 
-					console.log(child)
-
 					child.material.envMap = this.params.environment;
 					child.material.envMapIntensity = 4;
 					child.receiveShadow = true
