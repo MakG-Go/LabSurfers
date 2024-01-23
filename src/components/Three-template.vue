@@ -253,8 +253,8 @@ export default {
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             this.renderer.shadowMap.enabled = true;
             this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-            this.renderer.toneMapping = THREE.ReinhardToneMapping;
-            this.renderer.toneMappingExposure = 1.5;
+            this.renderer.toneMapping = THREE.AgXToneMapping;
+            this.renderer.toneMappingExposure = 1;
 
             this.renderer.autoClear = false;
 
