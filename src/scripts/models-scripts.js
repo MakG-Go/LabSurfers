@@ -1,7 +1,7 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { AnimationMixer, Vector3 } from "three";
 import * as THREE from "three"
-import { OBB } from 'three/addons/math/OBB.js';
+
 import { gsap } from 'gsap';
 import { ROOLES } from "@/scripts/rooles.js";
 import _ from "lodash";
@@ -55,7 +55,7 @@ class BasicCharacterControllerInput {
 	}
 
 	onKeyDown() {
-		console.log('2')
+
 		this.keys.space = true
 	}
 
@@ -181,18 +181,25 @@ class RunState extends State {
 		const curAction = this.parent.proxy._animations.get('slow-run');
 
 		if (prevState) {
+
 			const prevAction = this.parent.proxy._animations.get(prevState.Name);
+
+			console.log(prevAction, 'prevAction')
 
 			curAction.enabled = true;
 
 			if (prevState.Name != 'slow-run') {
+
 				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
 				curAction.time = prevAction.time * ratio;
 			}
+			else {
+				curAction.time = 0.0;
+				curAction.setEffectiveTimeScale(1.0);
+				curAction.setEffectiveWeight(1.0);
+			}
 
-			curAction.time = 0.0;
-			curAction.setEffectiveTimeScale(1.0);
-			curAction.setEffectiveWeight(1.0);
+
 
 			curAction.crossFadeFrom(prevAction, 0.2, true);
 			curAction.play();
@@ -205,6 +212,7 @@ class RunState extends State {
 	}
 
 	Update(timeElapsed, input) {
+
 		if (input.keys.space) {
 			this.parent.SetState('jump');
 		}
@@ -257,6 +265,7 @@ class IdleState extends State {
 	Update(timeElapsed, input) {
 		if (input.keys.space) {
 			this.parent.SetState('slow-run');
+			// this.parent.SetState('jump');
 		}
 
 	}
@@ -282,8 +291,12 @@ class JumpState extends State {
 	Enter(prevState) {
 
 		this.prevState = this.getPrevName(prevState.Name)
+
+
 		const curAction = this.parent.proxy._animations.get('jump');
 		const mixer = curAction.getMixer();
+
+		console.log(curAction)
 
 		mixer.addEventListener('finished', this.FinishedCallback);
 
@@ -294,7 +307,7 @@ class JumpState extends State {
 			curAction.setLoop(THREE.LoopOnce, 1);
 			curAction.clampWhenFinished = true;
 
-			curAction.crossFadeFrom(prevAction, 0.1, true);
+			curAction.crossFadeFrom(prevAction, 0.2, true);
 			curAction.play();
 		} else {
 			curAction.play();
@@ -544,6 +557,7 @@ export class BasicCharacterController {
 		this.stateMachine.SetState('slow-run');
 	}
 
+
 	GetDetectedColide(detected) {
 
 		this.detectedColide = detected
@@ -568,6 +582,10 @@ export class BasicCharacterController {
 
 		!this.satrtGame ? this.satrtGame = true : ''
 
+		this.GetRunAnimation()
+
+		// console.log('start')
+
 		return this.satrtGame
 	}
 
@@ -582,10 +600,8 @@ export class BasicCharacterController {
 
 	GetKeyDown(event) {
 
-
 		if (event.keyCode === 32 && !this.input.keys.space && !this.detectedColide) {
 
-			this.GetStart();
 			this.input.onKeyDown();
 			this.shortMovingUpdate();
 
@@ -596,15 +612,6 @@ export class BasicCharacterController {
 			}, 800)
 		}
 
-		// switch (event.keyCode) {
-
-		// 	case 32: // SPACE
-		// 		this.input.onKeyDown()
-		// 		break;
-
-		// }
-		// this.shortMovingUpdate();
-		// this.input.onKeyUp();
 	}
 
 	GetKeyUp(event) {
@@ -945,7 +952,6 @@ export class BasicCharacterController {
 		}
 
 	}
-
 
 }
 

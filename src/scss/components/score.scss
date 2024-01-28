@@ -4,20 +4,23 @@
         top: 1rem;
         left: 2rem;
         padding: 1rem;
+        padding: 0.2rem;
 
         z-index: 3;
 
         max-width: 25vw;
 
-        background-color: rgba(89, 138, 116, 0.45);
+        // background-color: rgba(89, 138, 116, 0.45);
+        background-color: rgba(89, 138, 116, 1);
 
         border-radius: 50px;
 
-        backdrop-filter: blur(5px);
+        // backdrop-filter: blur(5px);
     }
     &_number {
         color: #4d2519;
         font-weight: bold;
         font-size: 2rem;
+        // font-size: 1rem;
     }
 }

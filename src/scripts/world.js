@@ -51,9 +51,6 @@ class WorldObject {
 					child.material.envMap = this.params.environment;
 					child.material.envMapIntensity = 3;
 
-
-					// child.frustumCulled = false;
-
 					child.castShadow = false
 					child.frustumCulled = false;
 					child.material.needsUpdate = true;
@@ -78,15 +75,6 @@ class WorldObject {
 
 			})
 
-			// this.mixer = new THREE.AnimationMixer(this.model);
-
-			// this.SetupAnimations()
-
-			// if (this.side === 0) {
-			// 	this.model.position.x = this.model.position.x * -1
-			// }
-
-
 
 			this.boxHelper = new THREE.BoxHelper(this.model, 0x0000ff);
 			this.boxHelper.position.copy(this.model.position)
@@ -102,46 +90,15 @@ class WorldObject {
 		this._manager.onLoad = () => {
 			enemyCount.eCount = 1
 		}
-		// this.params.preloader
-		// 	.onProgress = (itemUrl, itemsLoaded, itemsTotal) => {
-		// 		let loadProc = itemsLoaded / itemsTotal;
-		// 		this.loadPercetn = Math.floor(loadProc * 100);
-
-		// 		if (this.loadPercetn == 100) {
-		// 			console.log('en')
-		// 		}
-		// 	}
 
 	}
 
-	// SetupAnimations() {
-
-	// 	if (!this.model) return
-
-	// 	if (this.model.animations) {
-
-	// 		this.model.animations.forEach((clip) => {
-	// 			if (clip.name === "open") {
-	// 				const action = this.mixer.clipAction(clip);
-	// 				action.play();
-	// 				action.enabled = false;
-	// 				this.action = action
-	// 			}
-	// 		});
-	// 	}
-
-	// 	return
-	// }
 
 	Intersects(otherObject) {
 
 		return this.collider.intersectsBox(otherObject);
 	}
 
-	GetCharacterAnimation() {
-
-		// this.character.GetDrunckAnimation()
-	}
 
 	async GetKeybordOff(state) {
 
@@ -167,22 +124,8 @@ class WorldObject {
 			return
 		}
 
-		// if (this.mixer) {
-		// 	this.mixer.update(delta);
-		// }
 
 		this.model.position.copy(this.position);
-
-		// if (this.skinnedMesh) {
-
-		// 	this.skinnedMesh.computeBoundingBox()
-		// }
-
-
-		// if (this.model.children[0].geometry != null) {
-
-		// 	this.collider.setFromObject(this.model)
-		// }
 
 
 		if (this.model.children) {
@@ -225,14 +168,13 @@ export class WorldManager {
 		this.score = 0
 
 		this.enemy = ROOLES.enemy
-		// this.sidePosition = [-1.42, 1.42]
+
 		this.startPosition = ROOLES.enemy_startPosition
 		this.seporateDistanse = ROOLES.enemy_seporateDistanse
 
 		this.interseck = false
 
 		this.Init()
-
 
 	}
 
@@ -253,16 +195,9 @@ export class WorldManager {
 
 		let enemi = this.getRandom(0, this.enemies.length - 1)
 
-
 		obj = new WorldObject(this.params, side, this.character, this.enemies[enemi])
 
-		// obj.openIndex = this.getRandom(1, 10)
-
-		// obj.position.x = this.sidePosition[side];
-
 		obj.position.z = sPos
-
-		// obj.index = idx
 
 		this._objects.push(obj)
 	}
@@ -279,7 +214,6 @@ export class WorldManager {
 			this.onStart = false
 
 		}
-
 
 	}
 
@@ -302,38 +236,15 @@ export class WorldManager {
 				item.position.z -= this.speed
 			}
 
-			/** Если есть анимация */
-
-			// if (item.position.z < 5 && item.position.z > 4 && item.action != null && item.openIndex > 3) {
-
-			// 	item.action.reset();
-			// 	item.action.timeScale = 1
-			// 	item.action.setLoop(THREE.LoopOnce, 1);
-			// 	item.action.clampWhenFinished = true;
-			// 	item.action.enabled = true;
-			// 	item.action.play();
-
-			// 	return
-			// }
 
 			if (item.position.z < -3) {
-
-				// item.openIndex = this.getRandom(1, 10)
 
 				let index
 				key === 0 ? index = this._objects.length - 1 : index = key - 1
 
-				// if (item.action) {
-
-				// 	item.action.reset();
-				// 	item.action.clampWhenFinished = true;
-				// 	item.action.enabled = false;
-				// }
-
 				let newPositionZ = this._objects[index].position.z + this.seporateDistanse + this.getRandom(0, ROOLES.enemy_randomSeporateDistanse)
 				item.position.z = newPositionZ
 
-				// console.log(newPositionZ)
 
 				return
 
@@ -356,6 +267,7 @@ export class WorldManager {
 	}
 
 	async CheckIntersec(colider) {
+
 		if (!colider) return
 
 		if (this.character.checkIntersec) return
@@ -365,36 +277,24 @@ export class WorldManager {
 			/** Событие колизии */
 			this.interseck = true
 
-			/** для анимаций */
-
-			// if (colider.action) {
-			// 	colider.action.paused = false;
-			// 	colider.action.timeScale = -1;
-			// 	colider.action.setLoop(THREE.LoopOnce);
-			// 	colider.action.play();
-			// }
-
-			// colider.position.z += 0.1
-			// colider.GetCharacterAnimation()
-
 			let as = await colider.GetKeybordOff(true)
 
 			this.interseck = as
-
-			// console.log(this.interseck, '1')
 
 		}
 	}
 
 	GetScore() {
 
-		this.startGame = this.character.GetStart()
 		return this.score
 	}
 
-	GetIntersec() {
+	GetStartGame(value) {
 
-		// this.ground.getSpeed(this.interseck)
+		this.startGame = value
+	}
+
+	GetIntersec() {
 
 		/** Передаём в компонент */
 

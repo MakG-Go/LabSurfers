@@ -3,7 +3,7 @@
 import { gsap } from "gsap";
 export default {
     props: {
-        volumeParams: { type: Number, default: 0.5 },
+        volumeParams: { type: Number, default: 0.0 },
         musicData: { type: String, require: true },
         start: { type: Boolean, default: false },
         pause: { type: Boolean, default: false },
@@ -17,16 +17,17 @@ export default {
     methods: {
         getPlay() {
             this.$refs.gameMusic.play();
+            this.$refs.gameMusic.volume = 0;
         },
 
         getVolume() {
             if (this.pause || this.showQuestion) {
                 gsap.to(this.$refs.gameMusic, {
-                    volume: 0.01,
+                    volume: 0.0,
                 });
             } else {
                 gsap.to(this.$refs.gameMusic, {
-                    volume: 0.5,
+                    volume: 0.0,
                 });
             }
         },

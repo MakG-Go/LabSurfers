@@ -22,6 +22,7 @@ import { BasicCharacterController } from "@/scripts/models-scripts.js";
 import { Ground } from "@/scripts/ground.js";
 import { WorldManager } from "@/scripts/world.js";
 import { CssMesh } from "@/scripts/cssMesh.js";
+import { SpriteElement } from "@/scripts/createSprite.js";
 
 import QuestionsVue from "@/components/Questions.vue";
 import GameOverVue from "@/components/GameOver.vue";
@@ -67,6 +68,13 @@ export default {
             showGame: false,
             startGame: false,
             pauseButton: null,
+
+            alterPauseButton: null,
+            alterStartButton: null,
+
+            startButton: null,
+            scoreContainer: null,
+            intersectionBtns: [],
             model: {
                 character: {
                     url: "models/toy_1.glb",
@@ -93,6 +101,7 @@ export default {
 
             loadCounter: 0,
             score: 0,
+            cssScore: null,
             showQuestion: false,
             allContentLoaded: false,
             live: null,
@@ -178,7 +187,12 @@ export default {
 
             this.getLight();
             this.getEnvierment();
-            this.createPauseButton();
+            // this.createStartButton();
+            // this.createPauseButton();
+
+            this.createScoreContainer();
+            this.createAlterPauseButton();
+            this.createAlterStartButton();
 
             this.ground = this.getGround(this.getArea);
             this.player = this.getModel(knitted_man);
@@ -208,6 +222,9 @@ export default {
 
         getStartGame() {
             this.startGame = true;
+            this.player.GetStart();
+            this.world.GetStartGame(true);
+            this.alterStartButton._hideBtn();
         },
 
         getFov() {
@@ -224,8 +241,12 @@ export default {
             this.cssCanvas = this.$refs.webglCss;
 
             this.scene = new THREE.Scene();
+            this.sceneOrtho = new THREE.Scene();
+
             this.scene.background = new THREE.Color(0xffffff);
             this.scene.fog = new THREE.FogExp2(0xffffff, 0.055);
+
+            // this.sceneOrtho.background = new THREE.Color(0xff0000);
 
             this.camera = new THREE.PerspectiveCamera(
                 this.fov.value,
@@ -234,11 +255,18 @@ export default {
                 40
             );
 
-            // this.camera.position.x = 0;
-            // this.camera.position.y = 3.45;
-            // this.camera.position.z = -4.5;
             this.camera.position.set(...this.cameraPos);
             this.camera.lookAt(this.target);
+
+            this.cameraOrtho = new THREE.OrthographicCamera(
+                -this.sizes.width / 2,
+                this.sizes.width / 2,
+                this.sizes.height / 2,
+                -this.sizes.height / 2,
+                1,
+                10
+            );
+            this.cameraOrtho.position.z = 10;
 
             /**
              * Renderer
@@ -247,14 +275,15 @@ export default {
                 antialias: true,
                 alpha: true,
             });
-            this.renderer.setClearColor(0xfffafa, 1);
+
+            // this.renderer.setClearColor(0xfffafa, 1);
 
             this.renderer.setSize(this.sizes.width, this.sizes.height);
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             this.renderer.shadowMap.enabled = true;
             this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-            this.renderer.toneMapping = THREE.AgXToneMapping;
-            this.renderer.toneMappingExposure = 1;
+            // this.renderer.toneMapping = THREE.AgXToneMapping;
+            // this.renderer.toneMappingExposure = 1;
 
             this.renderer.autoClear = false;
 
@@ -275,6 +304,8 @@ export default {
 
             // this.scene.add(this.axisHelper);
         },
+
+        /** POST----------------------------- */
 
         createPostProcess() {
             let RenderTargetClass = null;
@@ -342,6 +373,7 @@ export default {
         },
 
         /** -------------------------------- */
+
         createHalfTonePos() {
             this.halftonePass = new HalftonePass(
                 this.sizes.width,
@@ -392,6 +424,7 @@ export default {
             this.halftonePass.uniforms["disable"].value =
                 this.controller.disable;
         },
+
         /** -------------------------------- */
 
         createOrbitControl() {
@@ -444,6 +477,22 @@ export default {
             this.camera.aspect = this.sizes.width / this.sizes.height;
             this.camera.updateProjectionMatrix();
 
+            this.cameraOrtho.left = -this.sizes.width / 2;
+            this.cameraOrtho.right = this.sizes.width / 2;
+            this.cameraOrtho.top = this.sizes.height / 2;
+            this.cameraOrtho.bottom = -this.sizes.height / 2;
+            this.cameraOrtho.updateProjectionMatrix();
+
+            this.scoreContainer._getPositions({
+                name: "score",
+                element: this.scoreContainer.currentSprite,
+            });
+
+            this.alterPauseButton._getPositions({
+                name: "pause",
+                element: this.alterPauseButton.currentSprite,
+            });
+
             // Update renderer
             this.renderer.setSize(this.sizes.width, this.sizes.height);
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -476,51 +525,132 @@ export default {
             );
         },
 
+        /** Методы игрового движка */
+
+        // ------------------Кнопки------------------------
+
         btnClick(event) {
             this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            this.raycaster.setFromCamera(this.mouse, this.camera);
 
-            const intersects = this.raycaster.intersectObject(this.pauseButton);
+            this.raycaster.setFromCamera(this.mouse, this.cameraOrtho);
+
+            // const intersects = this.raycaster.intersectObjects(
+            //     this.intersectionBtns
+            // );
+
+            const intersects = this.raycaster.intersectObjects(
+                this.sceneOrtho.children,
+                true
+            );
 
             if (intersects.length > 0) {
+                console.log(intersects);
+
                 const hoveredObject = intersects[0].object;
+
+                // console.log(hoveredObject);
+
                 if (hoveredObject.name == "pause") {
                     return this.getPause();
+                }
+                if (hoveredObject.name == "start") {
+                    return this.getStartGame();
                 }
             }
         },
 
-        /** Методы игрового движка */
-
-        createPauseButton() {
+        createStartCssButton() {
             let buttonGeometry = new THREE.PlaneGeometry(0.5, 0.25);
             let buttonMaterial = new THREE.MeshBasicMaterial({
                 color: "rgb(48, 59, 78)",
             });
 
-            console.log(this.pauseButton, "pauseButton");
-
             let button = new THREE.Mesh(buttonGeometry, buttonMaterial);
-            button.name = "pause";
+            button.name = "start";
             button.rotation.x = Math.PI;
-            button.position.y = 2.95;
-            button.position.x = 2.25;
+            button.position.y = 2.8;
+            button.position.x = 0.6;
+            button.position.z = -0.75;
             button.lookAt(this.camera.position);
-            this.pauseButton = button;
+            this.startButton = button;
             this.scene.add(button);
 
             let cssElem = new CssMesh({
-                name: "Пауза",
+                name: "Старт",
                 type: "div",
+                class: "webglCss__btn",
                 width: 0.5,
                 height: 0.25,
                 position: button.position,
                 rotation: button.rotation,
             });
-
+            // this.intersectionBtns.push(this.startButton);
             this.scene.add(cssElem.compliteMash);
         },
+
+        createScoreContainer() {
+            let scoreContainer = new SpriteElement({
+                back: "/backgrounds/board-1.png",
+                width: 182,
+                height: 132,
+                fontSize: 20,
+                color: "#4b261b",
+                name: "score",
+            });
+
+            this.sceneOrtho.add(scoreContainer.currentSprite);
+            this.scoreContainer = scoreContainer;
+
+            this.scoreContainer._getPositions({
+                name: "score",
+                element: scoreContainer.currentSprite,
+            });
+        },
+
+        createAlterStartButton() {
+            let startBtn = new SpriteElement({
+                back: "/backgrounds/start.png",
+                width: 127,
+                height: 127,
+                name: "start",
+            });
+
+            this.sceneOrtho.add(startBtn.currentSprite);
+
+            this.alterStartButton = startBtn;
+
+            this.alterStartButton._getPositions({
+                name: "start",
+                element: startBtn.currentSprite,
+            });
+
+            this.intersectionBtns.push(startBtn.currentSprite);
+        },
+
+        createAlterPauseButton() {
+            let pauseBtn = new SpriteElement({
+                back: "/backgrounds/pause.png",
+                width: 127,
+                height: 127,
+                name: "pause",
+            });
+
+            this.sceneOrtho.add(pauseBtn.currentSprite);
+
+            this.alterPauseButton = pauseBtn;
+
+            this.alterPauseButton._getPositions({
+                name: "pause",
+                element: pauseBtn.currentSprite,
+            });
+
+            this.intersectionBtns.push(pauseBtn.currentSprite);
+
+            console.log(this.intersectionBtns);
+        },
+
+        // -----------------------------------------
 
         getLoadStatus() {
             return new THREE.LoadingManager(
@@ -623,8 +753,28 @@ export default {
         },
 
         getScore() {
+            if (this.gameover) return;
+
             if (this.startGame && !this.gameover) {
                 this.score = Math.round(this.world.GetScore());
+            }
+
+            if (this.scoreContainer != null) {
+                this.scoreContainer.currentScore = this.score;
+                this.scoreContainer.currentLives = this.live;
+                this.scoreContainer._Update();
+            }
+
+            if (this.alterPauseButton != null) {
+                this.alterPauseButton._Update();
+            }
+
+            if (this.alterStartButton != null) {
+                this.alterStartButton._Update();
+            }
+
+            if (this.cssScore != null) {
+                return (this.cssScore.curentScore = this.score);
             }
         },
 
@@ -691,6 +841,10 @@ export default {
                 this.player.GetIdleAnimation();
                 this.player.GameOverItersec();
             }
+
+            if (this.cssScore != null) {
+                return (this.cssScore.curretLive = this.live);
+            }
         },
 
         getPause() {
@@ -700,10 +854,12 @@ export default {
         },
 
         startAction(event) {
+            if (!this.startGame) return;
             this.player.GetKeyDown(event);
         },
 
         stopAction(event) {
+            if (!this.startGame) return;
             this.player.GetKeyUp(event);
         },
 
@@ -822,7 +978,12 @@ export default {
 
             this.stats.update();
 
-            // this.pauseButton.lookAt(this.camera.position);
+            this.startButton != null
+                ? this.startButton.lookAt(this.camera.position)
+                : "";
+            this.pauseButton != null
+                ? this.pauseButton.lookAt(this.camera.position)
+                : "";
             // this.camera.lookAt(this.target);
             // this.camera.fov = this.fov.value;
             // this.camera.updateProjectionMatrix();
@@ -849,31 +1010,16 @@ export default {
             // this.controls.update();
 
             // Render
-
+            // this.renderer.clear();
             this.renderer.render(this.scene, this.camera);
+            // this.renderer.clearDepth();
+            this.renderer.render(this.sceneOrtho, this.cameraOrtho);
             // this.effectComposer.render();
             // console.log(this.effectComposer);
-            this.cssRenderer.render(this.scene, this.camera);
+            // this.cssRenderer.render(this.scene, this.camera);
 
             !this.pause ? requestAnimationFrame(this.tick) : "";
         },
-
-        // timer(sec) {
-        //     let takeData = new Date();
-        //     let seconds = takeData.getSeconds();
-        // },
-
-        /** Для вопросов */
-        // getCorrect(correct) {
-        //     if (correct) {
-        //         this.world.SetGo(correct, 0);
-        //         this.gameover = true;
-        //     } else {
-        //         this.world.SetGo(correct, this.gameSpeed.current); //Прокидываем текущую скорость
-        //         // this.player.GetRunAnimation();
-        //         this.player.GetDetectedColide(false);
-        //     }
-        // },
 
         /** Вспомогательные методы */
 
@@ -963,65 +1109,92 @@ export default {
             //     .step(0.01)
             //     .name("Camera target Y")
             //     .onFinishChange(this.camera.updateProjectionMatrix());
+            if (this.startButton) {
+                this.gui
+                    .add(this.startButton.position, "x")
+                    .min(-5)
+                    .max(10)
+                    .step(0.01)
+                    .name("start pos x");
 
-            this.gui
-                .add(this.pauseButton.position, "x")
-                .min(-5)
-                .max(10)
-                .step(0.01)
-                .name("pause pos x");
+                this.gui
+                    .add(this.startButton.position, "y")
+                    .min(-5)
+                    .max(10)
+                    .step(0.01)
+                    .name("start pos y");
 
-            this.gui
-                .add(this.pauseButton.position, "y")
-                .min(-5)
-                .max(10)
-                .step(0.01)
-                .name("pause pos y");
+                this.gui
+                    .add(this.startButton.position, "z")
+                    .min(-5)
+                    .max(10)
+                    .step(0.01)
+                    .name("start pos z");
+            }
 
-            this.gui
-                .add(this.controller, "shape", {
-                    Dot: 1,
-                    Ellipse: 2,
-                    Line: 3,
-                    Square: 4,
-                })
-                .onChange(this.onGUIChange);
-            this.gui
-                .add(this.controller, "radius", 1, 25)
-                .onChange(this.onGUIChange);
-            this.gui
-                .add(this.controller, "rotateR", 0, 90)
-                .onChange(this.onGUIChange);
-            this.gui
-                .add(this.controller, "rotateG", 0, 90)
-                .onChange(this.onGUIChange);
-            this.gui
-                .add(this.controller, "rotateB", 0, 90)
-                .onChange(this.onGUIChange);
-            this.gui
-                .add(this.controller, "scatter", 0, 1, 0.01)
-                .onChange(this.onGUIChange);
-            this.gui
-                .add(this.controller, "greyscale")
-                .onChange(this.onGUIChange);
-            this.gui
-                .add(this.controller, "blending", 0, 1, 0.01)
-                .onChange(this.onGUIChange);
-            this.gui
-                .add(this.controller, "blendingMode", {
-                    Linear: 1,
-                    Multiply: 2,
-                    Add: 3,
-                    Lighter: 4,
-                    Darker: 5,
-                })
-                .onChange(this.onGUIChange);
-            this.gui.add(this.controller, "disable").onChange(this.onGUIChange);
+            if (this.pauseButton) {
+                this.gui
+                    .add(this.pauseButton.position, "x")
+                    .min(-5)
+                    .max(10)
+                    .step(0.01)
+                    .name("pause pos x");
+
+                this.gui
+                    .add(this.pauseButton.position, "y")
+                    .min(-5)
+                    .max(10)
+                    .step(0.01)
+                    .name("pause pos y");
+
+                this.gui
+                    .add(this.pauseButton.position, "z")
+                    .min(-5)
+                    .max(10)
+                    .step(0.01)
+                    .name("pause pos z");
+            }
+
+            // this.gui
+            //     .add(this.controller, "shape", {
+            //         Dot: 1,
+            //         Ellipse: 2,
+            //         Line: 3,
+            //         Square: 4,
+            //     })
+            //     .onChange(this.onGUIChange);
+            // this.gui
+            //     .add(this.controller, "radius", 1, 25)
+            //     .onChange(this.onGUIChange);
+            // this.gui
+            //     .add(this.controller, "rotateR", 0, 90)
+            //     .onChange(this.onGUIChange);
+            // this.gui
+            //     .add(this.controller, "rotateG", 0, 90)
+            //     .onChange(this.onGUIChange);
+            // this.gui
+            //     .add(this.controller, "rotateB", 0, 90)
+            //     .onChange(this.onGUIChange);
+            // this.gui
+            //     .add(this.controller, "scatter", 0, 1, 0.01)
+            //     .onChange(this.onGUIChange);
+            // this.gui
+            //     .add(this.controller, "greyscale")
+            //     .onChange(this.onGUIChange);
+            // this.gui
+            //     .add(this.controller, "blending", 0, 1, 0.01)
+            //     .onChange(this.onGUIChange);
+            // this.gui
+            //     .add(this.controller, "blendingMode", {
+            //         Linear: 1,
+            //         Multiply: 2,
+            //         Add: 3,
+            //         Lighter: 4,
+            //         Darker: 5,
+            //     })
+            //     .onChange(this.onGUIChange);
+            // this.gui.add(this.controller, "disable").onChange(this.onGUIChange);
         },
-
-        // newArea() {
-        //     this.$emit("new-area");
-        // },
     },
 };
 </script>
@@ -1041,14 +1214,15 @@ export default {
             <div class="cssload-spin-box"></div>
         </div>
 
+        <img class="webGl__background" src="/backgrounds/back-1.png" alt="" />
         <div ref="webglCss" class="webglCss"></div>
         <div ref="webGl" class="webGl" @click="btnClick($event)"></div>
 
-        <div class="score_container" tabindex="-1">
+        <!-- <div class="score_container" tabindex="-1" ref="score">
             <p class="score_number">Очки: {{ score }}</p>
 
             <p class="score_number">Жизней: {{ live }}</p>
-        </div>
+        </div> -->
 
         <GameOverVue
             tabindex="-1"
