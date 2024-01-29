@@ -26,7 +26,6 @@ class WorldObject {
 
 		this.character = character
 
-		this._manager = new THREE.LoadingManager();
 		this.loadModel(this.params, this.enemi)
 
 	}
@@ -36,7 +35,7 @@ class WorldObject {
 		this.params = params
 		this.enemi = enemi
 
-		new GLTFLoader(this._manager).load(this.enemi.model, (gltf) => {
+		new GLTFLoader(this.params.preloader).load(this.enemi.model, (gltf) => {
 
 			this.model = gltf.scene;
 
@@ -87,10 +86,6 @@ class WorldObject {
 
 		});
 
-		this._manager.onLoad = () => {
-			enemyCount.eCount = 1
-		}
-
 	}
 
 
@@ -102,7 +97,6 @@ class WorldObject {
 
 	async GetKeybordOff(state) {
 
-
 		this.character.GetDetectedColide(state)
 
 		if (!ROOLES.stop_with_interseck) {
@@ -110,8 +104,10 @@ class WorldObject {
 			let promise = await new Promise((resolve) => {
 
 				setTimeout(() => {
+
 					this.character.GetDetectedColide(false);
 					resolve(false);
+
 				}, 2500)
 			});
 
@@ -120,15 +116,13 @@ class WorldObject {
 	}
 
 	Update(delta) {
-		if (!this.model) {
-			return
-		}
+		if (!this.model) return
 
+		if (!this.collider) return
 
 		this.model.position.copy(this.position);
 
-
-		if (this.model.children) {
+		if (this.model?.children[0]?.children[0]?.geometry?.boundingBox || this.model?.children[0]?.geometry?.boundingBox) {
 
 			this.collider.setFromObject(this.model)
 		}
@@ -195,7 +189,7 @@ export class WorldManager {
 
 		let enemi = this.getRandom(0, this.enemies.length - 1)
 
-		obj = new WorldObject(this.params, side, this.character, this.enemies[enemi])
+		obj = new WorldObject(this.params, side, this.character, this.enemies[enemi], this.params.preloader)
 
 		obj.position.z = sPos
 

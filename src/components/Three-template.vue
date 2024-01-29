@@ -21,7 +21,7 @@ import { HalftonePass } from "three/addons/postprocessing/HalftonePass.js";
 import { BasicCharacterController } from "@/scripts/models-scripts.js";
 import { Ground } from "@/scripts/ground.js";
 import { WorldManager } from "@/scripts/world.js";
-import { CssMesh } from "@/scripts/cssMesh.js";
+// import { CssMesh } from "@/scripts/cssMesh.js";
 import { SpriteElement } from "@/scripts/createSprite.js";
 
 import QuestionsVue from "@/components/Questions.vue";
@@ -61,19 +61,20 @@ export default {
                 height: window.innerHeight,
             },
             cameraPos: [1.2, 3, -1.65],
+            cameraMobilePos: [0.8, 2.75, -2.2],
             color: {
                 fogColor: "#0x000000",
             },
 
             showGame: false,
             startGame: false,
-            pauseButton: null,
+            textureLoaded: false,
+            modelsLoaded: false,
 
             alterPauseButton: null,
             alterStartButton: null,
-
-            startButton: null,
             scoreContainer: null,
+
             intersectionBtns: [],
             model: {
                 character: {
@@ -134,7 +135,14 @@ export default {
         this.resize();
         this.orientationchange();
         this.getCurrentLive();
-        this.$refs.webGl.focus();
+
+        this.tick();
+
+        this.$nextTick(() => {
+            this.createScoreContainer();
+            this.createAlterPauseButton();
+            this.createAlterStartButton();
+        });
 
         // console.log(this.scene.children);
         // this.scene.children.traverse((child) => {
@@ -144,28 +152,6 @@ export default {
         // });
 
         // this.timer();
-    },
-
-    watch: {
-        showGame() {
-            this.tick();
-        },
-
-        startGame() {
-            switch (this.startGame) {
-                case true:
-                    gsap.to(this.gameSpeed, {
-                        current: this.gameSpeed.startSpeed,
-                        duration: 1.2,
-                        onUpdate: () => {
-                            this.world.GetNewSpeed(this.gameSpeed.current);
-                            this.ground.SetGo(this.gameSpeed.current);
-                        },
-                    });
-
-                    break;
-            }
-        },
     },
 
     beforeUnmount() {
@@ -187,12 +173,6 @@ export default {
 
             this.getLight();
             this.getEnvierment();
-            // this.createStartButton();
-            // this.createPauseButton();
-
-            this.createScoreContainer();
-            this.createAlterPauseButton();
-            this.createAlterStartButton();
 
             this.ground = this.getGround(this.getArea);
             this.player = this.getModel(knitted_man);
@@ -202,14 +182,18 @@ export default {
                 this.getArea.enemies
             );
 
-            this.createPostProcess();
+            // this.createPostProcess();
             // this.createPixelPass();
             // this.createDotPass();
-            this.createHalfTonePos();
+            // this.createHalfTonePos();
 
             if (ROOLES.guiHelper) {
                 this.getGui();
             }
+
+            // this.createScoreContainer();
+            // this.createAlterPauseButton();
+            // this.createAlterStartButton();
 
             /** Clock */
 
@@ -225,6 +209,18 @@ export default {
             this.player.GetStart();
             this.world.GetStartGame(true);
             this.alterStartButton._hideBtn();
+            this.easeStart();
+        },
+
+        easeStart() {
+            gsap.to(this.gameSpeed, {
+                current: this.gameSpeed.startSpeed,
+                duration: 1.2,
+                onUpdate: () => {
+                    this.world.GetNewSpeed(this.gameSpeed.current);
+                    this.ground.SetGo(this.gameSpeed.current);
+                },
+            });
         },
 
         getFov() {
@@ -232,7 +228,7 @@ export default {
             //     ? (this.fov.value = 45)
             //     : (this.fov.value = 80);
             this.mobile.mobile != null || this.mobile.tablet != null
-                ? (this.fov.value = 80)
+                ? (this.fov.value = 100)
                 : (this.fov.value = 85);
         },
 
@@ -255,7 +251,12 @@ export default {
                 40
             );
 
-            this.camera.position.set(...this.cameraPos);
+            if (this.mobile.mobile != null || this.mobile.tablet != null) {
+                this.camera.position.set(...this.cameraMobilePos);
+            } else {
+                this.camera.position.set(...this.cameraPos);
+            }
+
             this.camera.lookAt(this.target);
 
             this.cameraOrtho = new THREE.OrthographicCamera(
@@ -279,7 +280,7 @@ export default {
             // this.renderer.setClearColor(0xfffafa, 1);
 
             this.renderer.setSize(this.sizes.width, this.sizes.height);
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
             this.renderer.shadowMap.enabled = true;
             this.renderer.outputColorSpace = THREE.SRGBColorSpace;
             // this.renderer.toneMapping = THREE.AgXToneMapping;
@@ -341,6 +342,7 @@ export default {
             this.effectComposer.setSize(this.sizes.width, this.sizes.height);
 
             this.renderPass = new RenderPass(this.scene, this.camera);
+
             this.effectComposer.addPass(this.renderPass);
 
             this.renderPass.renderToScreen = true;
@@ -470,7 +472,7 @@ export default {
             this.sizes.width = window.innerWidth;
             this.sizes.height = window.innerHeight;
 
-            console.log(this.sizes.width / this.sizes.height);
+            // console.log(this.sizes.width / this.sizes.height);
             if (this.sizes.width / this.sizes.height == null) return;
 
             // Update camera
@@ -527,7 +529,7 @@ export default {
 
         /** Методы игрового движка */
 
-        // ------------------Кнопки------------------------
+        // ------------------ Кнопки ------------------------
 
         btnClick(event) {
             this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -545,11 +547,7 @@ export default {
             );
 
             if (intersects.length > 0) {
-                console.log(intersects);
-
                 const hoveredObject = intersects[0].object;
-
-                // console.log(hoveredObject);
 
                 if (hoveredObject.name == "pause") {
                     return this.getPause();
@@ -560,34 +558,38 @@ export default {
             }
         },
 
-        createStartCssButton() {
-            let buttonGeometry = new THREE.PlaneGeometry(0.5, 0.25);
-            let buttonMaterial = new THREE.MeshBasicMaterial({
-                color: "rgb(48, 59, 78)",
-            });
+        // ------------------ CSS Кнопки ------------------------
 
-            let button = new THREE.Mesh(buttonGeometry, buttonMaterial);
-            button.name = "start";
-            button.rotation.x = Math.PI;
-            button.position.y = 2.8;
-            button.position.x = 0.6;
-            button.position.z = -0.75;
-            button.lookAt(this.camera.position);
-            this.startButton = button;
-            this.scene.add(button);
+        // createStartCssButton() {
+        //     let buttonGeometry = new THREE.PlaneGeometry(0.5, 0.25);
+        //     let buttonMaterial = new THREE.MeshBasicMaterial({
+        //         color: "rgb(48, 59, 78)",
+        //     });
 
-            let cssElem = new CssMesh({
-                name: "Старт",
-                type: "div",
-                class: "webglCss__btn",
-                width: 0.5,
-                height: 0.25,
-                position: button.position,
-                rotation: button.rotation,
-            });
-            // this.intersectionBtns.push(this.startButton);
-            this.scene.add(cssElem.compliteMash);
-        },
+        //     let button = new THREE.Mesh(buttonGeometry, buttonMaterial);
+        //     button.name = "start";
+        //     button.rotation.x = Math.PI;
+        //     button.position.y = 2.8;
+        //     button.position.x = 0.6;
+        //     button.position.z = -0.75;
+        //     button.lookAt(this.camera.position);
+        //     this.startButton = button;
+        //     this.scene.add(button);
+
+        //     let cssElem = new CssMesh({
+        //         name: "Старт",
+        //         type: "div",
+        //         class: "webglCss__btn",
+        //         width: 0.5,
+        //         height: 0.25,
+        //         position: button.position,
+        //         rotation: button.rotation,
+        //     });
+        //     // this.intersectionBtns.push(this.startButton);
+        //     this.scene.add(cssElem.compliteMash);
+        // },
+
+        // ------------------ Sprite Кнопки ------------------------
 
         createScoreContainer() {
             let scoreContainer = new SpriteElement({
@@ -631,6 +633,7 @@ export default {
         createAlterPauseButton() {
             let pauseBtn = new SpriteElement({
                 back: "/backgrounds/pause.png",
+                toggleBack: "/backgrounds/start.png",
                 width: 127,
                 height: 127,
                 name: "pause",
@@ -646,43 +649,23 @@ export default {
             });
 
             this.intersectionBtns.push(pauseBtn.currentSprite);
-
-            console.log(this.intersectionBtns);
         },
 
         // -----------------------------------------
 
         getLoadStatus() {
-            return new THREE.LoadingManager(
-                () => {
-                    this.loadCounter++;
-
-                    console.log("auf");
-
-                    //  enemyCount.eCount == ROOLES.enemy
-                    // console.log(enemyCount.eCount, "enemyCount");
-                    // console.log(areaTextureCount.tCount, "areaTextureCount");
-
-                    if (this.loadCounter == 2) {
-                        gsap.to(this.$refs.preloader, {
-                            opacity: 0,
-                            onComplete: () => {
-                                this.$refs.preloader
-                                    ? this.$refs.preloader.classList.remove(
-                                          "active"
-                                      )
-                                    : "";
-                                this.player.GetIdleAnimation();
-                                this.player.CreateInterseckBoxColide();
-                            },
-                        });
-                    }
+            return new THREE.LoadingManager(() => {
+                this.loadCounter++;
+                if (this.loadCounter >= 3) {
+                    this.modelsLoaded = true;
                 }
-                // (itemUrl, itemsLoaded, itemsTotal) => {
-                //     let loadProc = itemsLoaded / itemsTotal;
-                //     this.loadPercetn = Math.floor(loadProc * 100);
-                // }
-            );
+            });
+        },
+
+        getTextureLoadStatus() {
+            return new THREE.LoadingManager(() => {
+                this.textureLoaded = true;
+            });
         },
 
         getModel({ url, position, scale, alpha }) {
@@ -715,6 +698,7 @@ export default {
                 speed: this.gameSpeed.current,
                 environment: this.environmentMap,
                 preloader: this.getLoadStatus(),
+                textureLoad: this.getTextureLoadStatus(),
             });
             this.meshes.push(ground);
             return ground;
@@ -763,14 +747,6 @@ export default {
                 this.scoreContainer.currentScore = this.score;
                 this.scoreContainer.currentLives = this.live;
                 this.scoreContainer._Update();
-            }
-
-            if (this.alterPauseButton != null) {
-                this.alterPauseButton._Update();
-            }
-
-            if (this.alterStartButton != null) {
-                this.alterStartButton._Update();
             }
 
             if (this.cssScore != null) {
@@ -848,18 +824,19 @@ export default {
         },
 
         getPause() {
+            this.alterPauseButton._togleBtn();
             this.pause = !this.pause;
-            !this.pause ? this.tick() : "";
-            console.log(this.pause);
+            // !this.pause ? this.tick() : "";
+            // console.log(this.pause);
         },
 
         startAction(event) {
-            if (!this.startGame) return;
+            if (!this.startGame || this.gameover) return;
             this.player.GetKeyDown(event);
         },
 
         stopAction(event) {
-            if (!this.startGame) return;
+            if (!this.startGame || this.gameover) return;
             this.player.GetKeyUp(event);
         },
 
@@ -913,9 +890,18 @@ export default {
             this.renderer = null;
             this.camera = null;
             this.scene = null;
+            this.sceneOrtho = null;
+            this.cameraOrtho = null;
 
             this.gameover = false;
             this.startGame = false;
+            this.textureLoaded = false;
+            this.modelsLoaded = false;
+
+            this.alterPauseButton = null;
+            this.alterStartButton = null;
+            this.scoreContainer = null;
+
             this.gameSpeed.current = 0;
             this.score = 0;
             this.loadCounter = 0;
@@ -923,6 +909,11 @@ export default {
             areaTextureCount.tCountClear = 0;
 
             this.init();
+            this.$nextTick(() => {
+                this.createScoreContainer();
+                this.createAlterPauseButton();
+                this.createAlterStartButton();
+            });
         },
 
         destroyScene() {
@@ -973,36 +964,45 @@ export default {
         },
 
         tick() {
+            // if (!this.showGame) return;
+
             let delta = this.clock.getDelta();
+
             this.pause ? this.clock.stop() : this.clock.start();
+
+            if (!this.pause) {
+                if (this.world) {
+                    this.world.totalUpdate(delta);
+                }
+
+                /** Получаем пересечение */
+                this.checkIntersection(this.world.GetIntersec());
+
+                /** Получаем очки */
+                this.getScore();
+
+                /** Проверяем жизни */
+                this.getCurrentLive();
+
+                /** Изменение скорости игры */
+                this.changeSpeed();
+            }
 
             this.stats.update();
 
-            this.startButton != null
-                ? this.startButton.lookAt(this.camera.position)
-                : "";
-            this.pauseButton != null
-                ? this.pauseButton.lookAt(this.camera.position)
-                : "";
             // this.camera.lookAt(this.target);
-            // this.camera.fov = this.fov.value;
-            // this.camera.updateProjectionMatrix();
+            this.camera.fov = this.fov.value;
+            this.camera.updateProjectionMatrix();
 
-            if (this.world) {
-                this.world.totalUpdate(delta);
+            /** Buttton update */
+
+            if (this.alterPauseButton != null) {
+                this.alterPauseButton._Update();
             }
 
-            /** Получаем пересечение */
-            this.checkIntersection(this.world.GetIntersec());
-
-            /** Получаем очки */
-            this.getScore();
-
-            /** Проверяем жизни */
-            this.getCurrentLive();
-
-            /** Изменение скорости игры */
-            this.changeSpeed();
+            if (this.alterStartButton != null) {
+                this.alterStartButton._Update();
+            }
 
             // this.scene.fog.color = new THREE.Color(this.color.fogColor);
 
@@ -1011,14 +1011,14 @@ export default {
 
             // Render
             // this.renderer.clear();
-            this.renderer.render(this.scene, this.camera);
+            this.renderer?.render(this.scene, this.camera);
             // this.renderer.clearDepth();
-            this.renderer.render(this.sceneOrtho, this.cameraOrtho);
             // this.effectComposer.render();
+            this.renderer?.render(this.sceneOrtho, this.cameraOrtho);
             // console.log(this.effectComposer);
             // this.cssRenderer.render(this.scene, this.camera);
 
-            !this.pause ? requestAnimationFrame(this.tick) : "";
+            requestAnimationFrame(this.tick);
         },
 
         /** Вспомогательные методы */
@@ -1066,34 +1066,34 @@ export default {
 
             // this.gui.addColor(this.color, "fogColor").name("Fog color");
 
-            // this.gui
-            //     .add(this.fov, "value")
-            //     .min(0)
-            //     .max(170)
-            //     .step(1)
-            //     .name("Camera Fov")
-            //     .onFinishChange(this.camera.updateProjectionMatrix());
+            this.gui
+                .add(this.fov, "value")
+                .min(0)
+                .max(170)
+                .step(1)
+                .name("Camera Fov")
+                .onFinishChange(this.camera.updateProjectionMatrix());
 
-            // this.gui
-            //     .add(this.camera.position, "y")
-            //     .min(0)
-            //     .max(10)
-            //     .step(0.01)
-            //     .name("Camera Y");
+            this.gui
+                .add(this.camera.position, "y")
+                .min(0)
+                .max(10)
+                .step(0.01)
+                .name("Camera Y");
 
-            // this.gui
-            //     .add(this.camera.position, "z")
-            //     .min(-10)
-            //     .max(0)
-            //     .step(0.01)
-            //     .name("Camera z");
+            this.gui
+                .add(this.camera.position, "z")
+                .min(-10)
+                .max(0)
+                .step(0.01)
+                .name("Camera z");
 
-            // this.gui
-            //     .add(this.camera.position, "x")
-            //     .min(-10)
-            //     .max(10)
-            //     .step(0.01)
-            //     .name("Camera x");
+            this.gui
+                .add(this.camera.position, "x")
+                .min(-10)
+                .max(10)
+                .step(0.01)
+                .name("Camera x");
 
             // this.gui
             //     .add(this.target, "z")
@@ -1109,51 +1109,6 @@ export default {
             //     .step(0.01)
             //     .name("Camera target Y")
             //     .onFinishChange(this.camera.updateProjectionMatrix());
-            if (this.startButton) {
-                this.gui
-                    .add(this.startButton.position, "x")
-                    .min(-5)
-                    .max(10)
-                    .step(0.01)
-                    .name("start pos x");
-
-                this.gui
-                    .add(this.startButton.position, "y")
-                    .min(-5)
-                    .max(10)
-                    .step(0.01)
-                    .name("start pos y");
-
-                this.gui
-                    .add(this.startButton.position, "z")
-                    .min(-5)
-                    .max(10)
-                    .step(0.01)
-                    .name("start pos z");
-            }
-
-            if (this.pauseButton) {
-                this.gui
-                    .add(this.pauseButton.position, "x")
-                    .min(-5)
-                    .max(10)
-                    .step(0.01)
-                    .name("pause pos x");
-
-                this.gui
-                    .add(this.pauseButton.position, "y")
-                    .min(-5)
-                    .max(10)
-                    .step(0.01)
-                    .name("pause pos y");
-
-                this.gui
-                    .add(this.pauseButton.position, "z")
-                    .min(-5)
-                    .max(10)
-                    .step(0.01)
-                    .name("pause pos z");
-            }
 
             // this.gui
             //     .add(this.controller, "shape", {
@@ -1196,6 +1151,29 @@ export default {
             // this.gui.add(this.controller, "disable").onChange(this.onGUIChange);
         },
     },
+
+    watch: {
+        getTotalLoadStatus() {
+            if (this.getTotalLoadStatus) {
+                gsap.to(this.$refs.preloader, {
+                    opacity: 0,
+                    onComplete: () => {
+                        this.$refs.preloader
+                            ? this.$refs.preloader.classList.remove("active")
+                            : "";
+                        this.player.GetIdleAnimation();
+                        this.player.CreateInterseckBoxColide();
+                    },
+                });
+            }
+        },
+    },
+
+    computed: {
+        getTotalLoadStatus() {
+            return this.textureLoaded && this.modelsLoaded;
+        },
+    },
 };
 </script>
 
@@ -1230,14 +1208,6 @@ export default {
             :total-score="score"
             @get-restart="restart"
         ></GameOverVue>
-
-        <!-- <QuestionsVue
-            v-if="showQuestion && !gameover"
-            :start-question="showQuestion"
-            @time-over="timeOver"
-            @get-correct="getCorrect"
-        >
-        </QuestionsVue> -->
 
         <Splash @show-start="showStart" v-if="!showGame" tabindex="-1"></Splash>
 

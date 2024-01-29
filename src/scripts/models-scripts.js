@@ -184,8 +184,6 @@ class RunState extends State {
 
 			const prevAction = this.parent.proxy._animations.get(prevState.Name);
 
-			console.log(prevAction, 'prevAction')
-
 			curAction.enabled = true;
 
 			if (prevState.Name != 'slow-run') {
@@ -198,8 +196,6 @@ class RunState extends State {
 				curAction.setEffectiveTimeScale(1.0);
 				curAction.setEffectiveWeight(1.0);
 			}
-
-
 
 			curAction.crossFadeFrom(prevAction, 0.2, true);
 			curAction.play();
@@ -292,11 +288,8 @@ class JumpState extends State {
 
 		this.prevState = this.getPrevName(prevState.Name)
 
-
 		const curAction = this.parent.proxy._animations.get('jump');
 		const mixer = curAction.getMixer();
-
-		console.log(curAction)
 
 		mixer.addEventListener('finished', this.FinishedCallback);
 
@@ -398,6 +391,8 @@ export class BasicCharacterController {
 
 		new GLTFLoader(this.params.preloader).load(this.params.model,
 			(gltf) => {
+
+
 
 				this.model = gltf.scene;
 				this.model.updateMatrixWorld(true)

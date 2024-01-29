@@ -15,8 +15,8 @@ export class Ground {
 
 	loadModel(params) {
 		this.params = params
-		this.textureLoader = new THREE.TextureLoader()
 
+		this.textureLoader = new THREE.TextureLoader(this.params.textureLoad)
 
 		new GLTFLoader(this.params.preloader).load(this.params.model, (gltf) => {
 			this.model = gltf.scene;
@@ -44,17 +44,8 @@ export class Ground {
 
 					if (child.name.includes('alpha')) {
 
-						let alphaTexture = this.textureLoader.load(this.params.alpha,
-							() => {
-								areaTextureCount.tCount = 1
-							}
-						)
-						let texture = this.textureLoader.load(this.params.diffuse,
-							() => {
-
-								areaTextureCount.tCount = 1
-							}
-						)
+						let alphaTexture = this.textureLoader.load(this.params.alpha)
+						let texture = this.textureLoader.load(this.params.diffuse)
 
 						// console.log(this.params.diffuse)
 
@@ -76,14 +67,10 @@ export class Ground {
 			})
 
 
-
 			this.params.scene.add(this.model);
 			this.model.position.set(
 				0, 0, 0
 			);
-
-
-
 
 		});
 
@@ -98,7 +85,6 @@ export class Ground {
 			this.model.position.z -= this.speed
 		}
 		else {
-			console.log('next')
 			this.model.position.z = 0
 		}
 
